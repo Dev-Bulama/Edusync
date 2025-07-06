@@ -175,10 +175,10 @@ if 'RENDER' in os.environ:
     ALLOWED_HOSTS = [os.environ.get('RENDER_EXTERNAL_HOSTNAME')]
     
     # Database
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
-    }
+    # import dj_database_url
+    # DATABASES = {
+    #     'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+    # }
     
     # Static files
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
