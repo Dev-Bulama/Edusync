@@ -1,0 +1,301 @@
+<!-- File Path: meeting_app/templates/core/organizer_dashboard.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Organizer Dashboard - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 bg-success text-white min-vh-100">
+            <div class="p-3">
+                <h5 class="mb-4">
+                    <i class="fas fa-user-tie me-2"></i>Organizer Panel
+                </h5>
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#overview">
+                            <i class="fas fa-tachometer-alt me-2"></i>Overview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#meetings">
+                            <i class="fas fa-calendar-alt me-2"></i>My Meetings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#create">
+                            <i class="fas fa-plus me-2"></i>Create Meeting
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#participants">
+                            <i class="fas fa-users me-2"></i>Participants
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#reports">
+                            <i class="fas fa-chart-bar me-2"></i>Reports
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            <div class="p-4">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0">Organizer Dashboard</h1>
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-success me-3">
+                            <i class="fas fa-plus me-2"></i>New Meeting
+                        </button>
+                        <span class="text-muted">Welcome back, {{ user.first_name }}!</span>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Total Meetings</h6>
+                                        <h3 class="mb-0">{{ total_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-calendar-alt fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Upcoming</h6>
+                                        <h3 class="mb-0">{{ upcoming_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-clock fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Completed</h6>
+                                        <h3 class="mb-0">{{ completed_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Participants</h6>
+                                        <h3 class="mb-0">0</h3>
+                                    </div>
+                                    <i class="fas fa-users fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Meetings -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Recent Meetings</h5>
+                                <button class="btn btn-sm btn-success">
+                                    <i class="fas fa-plus me-1"></i>New Meeting
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Meeting Title</th>
+                                                <th>Date & Time</th>
+                                                <th>Participants</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Placeholder data -->
+                                            <tr>
+                                                <td>
+                                                    <div>
+                                                        <strong>Weekly Team Standup</strong>
+                                                        <br>
+                                                        <small class="text-muted">Recurring meeting</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>Tomorrow, 10:00 AM</strong>
+                                                        <br>
+                                                        <small class="text-muted">1 hour</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-group">
+                                                            <div class="avatar-sm bg-primary rounded-circle text-white d-flex align-items-center justify-content-center">
+                                                                <small>5</small>
+                                                            </div>
+                                                        </div>
+                                                        <small class="ms-2">5 participants</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-warning">Upcoming</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-success">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">
+                                                    <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                                                    <br>
+                                                    No meetings found. Create your first meeting!
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success">
+                                        <i class="fas fa-plus me-2"></i>Create Meeting
+                                    </button>
+                                    <button class="btn btn-primary">
+                                        <i class="fas fa-calendar-day me-2"></i>Schedule Meeting
+                                    </button>
+                                    <button class="btn btn-info">
+                                        <i class="fas fa-users me-2"></i>Manage Participants
+                                    </button>
+                                    <button class="btn btn-warning">
+                                        <i class="fas fa-download me-2"></i>Export Reports
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming Meetings -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Today's Schedule</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-warning rounded-circle p-2 me-3">
+                                        <i class="fas fa-clock text-white"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Team Standup</strong>
+                                        <br>
+                                        <small class="text-muted">10:00 AM - 11:00 AM</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-info rounded-circle p-2 me-3">
+                                        <i class="fas fa-users text-white"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Client Meeting</strong>
+                                        <br>
+                                        <small class="text-muted">2:00 PM - 3:00 PM</small>
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <small class="text-muted">No more meetings today</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .min-vh-100 {
+        min-height: 100vh;
+    }
+    
+    .nav-link.active {
+        background-color: #198754 !important;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #6c757d;
+    }
+    
+    .opacity-75 {
+        opacity: 0.75;
+    }
+    
+    .avatar-sm {
+        width: 30px;
+        height: 30px;
+        font-size: 0.875rem;
+    }
+    
+    .avatar-group {
+        display: flex;
+        align-items: center;
+    }
+</style>
+{% endblock %}

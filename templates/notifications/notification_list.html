@@ -1,0 +1,156 @@
+<!-- File Path: meeting_app/templates/notifications/notification_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-bell me-2"></i>Notifications</h2>
+                <div>
+                    <a href="{% url 'notifications:preferences' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-cog me-2"></i>Preferences
+                    </a>
+                    <button class="btn btn-success" onclick="markAllAsRead()">
+                        <i class="fas fa-check-double me-2"></i>Mark All Read
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            {{ form.search }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.notification_type }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.priority }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.is_read }}
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-2"></i>Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications List -->
+    <div class="row">
+        <div class="col-12">
+            {% if notifications %}
+                {% for notification in notifications %}
+                <div class="card mb-3 {% if not notification.is_read %}border-primary{% endif %}">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="mb-1">
+                                    {% if not notification.is_read %}
+                                        <span class="badge bg-primary me-2">New</span>
+                                    {% endif %}
+                                    {{ notification.title }}
+                                </h6>
+                                <p class="text-muted mb-2">{{ notification.message|truncatewords:30 }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>{{ notification.created_at|timesince }} ago
+                                    {% if notification.meeting %}
+                                        | <i class="fas fa-calendar me-1"></i>{{ notification.meeting.title }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <span class="badge bg-{% if notification.priority == 'urgent' %}danger{% elif notification.priority == 'high' %}warning{% else %}secondary{% endif %} me-2">
+                                    {{ notification.get_priority_display }}
+                                </span>
+                                {% if not notification.is_read %}
+                                    <button class="btn btn-sm btn-outline-primary" onclick="markAsRead('{{ notification.id }}')">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                        {% endif %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                        </li>
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                    <h4>No notifications yet</h4>
+                    <p class="text-muted">You'll see your notifications here when they arrive.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function markAsRead(notificationId) {
+    fetch(`/notifications/${notificationId}/read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+function markAllAsRead() {
+    fetch('/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

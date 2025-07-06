@@ -1,0 +1,667 @@
+<!-- File Path: meeting_app/templates/core/recording_transcription.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Transcription - {{ recording.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-file-alt text-primary me-2"></i>
+                    Audio Transcription
+                </h2>
+                <div>
+                    <a href="{% url 'core:recording_detail' recording.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Recording
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recording Information Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-microphone me-2"></i>Recording Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6 class="text-primary">{{ recording.title }}</h6>
+                            <p class="mb-2">
+                                <strong>Meeting:</strong> {{ recording.meeting.title }}<br>
+                                <strong>Organizer:</strong> {{ recording.meeting.organizer.get_full_name }}<br>
+                                <strong>Date:</strong> {{ recording.created_at|date:"F d, Y g:i A" }}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <span class="badge bg-info fs-6 mb-2">{{ recording.get_duration_display }}</span><br>
+                                <span class="badge bg-secondary fs-6">{{ recording.get_file_size_display }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcription Control Panel -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>Transcription Control Panel
+                        </h5>
+                        <span id="status-indicator" class="badge bg-light text-dark">
+                            {% if transcript %}
+                                {% if transcript.status == 'pending' %}Ready{% elif transcript.status == 'processing' %}Processing{% elif transcript.status == 'completed' %}Completed{% elif transcript.status == 'failed' %}Failed{% endif %}
+                            {% else %}
+                                Not Started
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Status Display -->
+                    <div id="transcription-status" class="mb-4">
+                        {% if transcript %}
+                            {% if transcript.status == 'pending' %}
+                                <div class="alert alert-warning d-flex align-items-center">
+                                    <i class="fas fa-clock fa-2x me-3 text-warning"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">Transcription Queued</h6>
+                                        <p class="mb-0">Your transcription request is in the queue and will begin processing shortly.</p>
+                                    </div>
+                                </div>
+                            {% elif transcript.status == 'processing' %}
+                                <div class="alert alert-info d-flex align-items-center">
+                                    <i class="fas fa-spinner fa-spin fa-2x me-3 text-info"></i>
+                                    <div class="flex-grow-1">
+                                        <h6 class="alert-heading mb-2">Transcription in Progress</h6>
+                                        <p class="mb-2">Processing audio file using AI transcription...</p>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
+                                                 id="progress-bar" style="width: 45%"></div>
+                                        </div>
+                                        <small class="text-muted mt-1 d-block">This may take several minutes depending on file size</small>
+                                    </div>
+                                </div>
+                            {% elif transcript.status == 'completed' %}
+                                <div class="alert alert-success d-flex align-items-center">
+                                    <i class="fas fa-check-circle fa-2x me-3 text-success"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">Transcription Completed Successfully!</h6>
+                                        <p class="mb-1">
+                                            <strong>Confidence Score:</strong> {{ transcript.confidence_score|floatformat:1 }}%
+                                            {% if transcript.processing_time %}
+                                                | <strong>Processing Time:</strong> {{ transcript.processing_time }}
+                                            {% endif %}
+                                        </p>
+                                        {% if transcript.speakers_identified %}
+                                            <small class="text-muted">
+                                                <i class="fas fa-users me-1"></i>{{ transcript.speaker_count }} speaker(s) identified
+                                            </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% elif transcript.status == 'failed' %}
+                                <div class="alert alert-danger d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x me-3 text-danger"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">Transcription Failed</h6>
+                                        <p class="mb-0">The transcription process encountered an error or was cancelled. You can try again.</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-light d-flex align-items-center">
+                                <i class="fas fa-info-circle fa-2x me-3 text-muted"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Ready to Start</h6>
+                                    <p class="mb-0">Click the button below to begin transcribing your audio recording.</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Controls Section -->
+                    <div class="row">
+                        <!-- Language Selection -->
+                        <div class="col-md-6 mb-3">
+                            <label for="language-select" class="form-label fw-bold">
+                                <i class="fas fa-language me-1"></i>Audio Language
+                            </label>
+                            <select class="form-select" id="language-select" 
+                                    {% if transcript and transcript.status in 'processing,pending' %}disabled{% endif %}>
+                                <option value="en" {% if transcript.language == 'en' %}selected{% endif %}>English</option>
+                                <option value="es" {% if transcript.language == 'es' %}selected{% endif %}>Spanish</option>
+                                <option value="fr" {% if transcript.language == 'fr' %}selected{% endif %}>French</option>
+                                <option value="de" {% if transcript.language == 'de' %}selected{% endif %}>German</option>
+                                <option value="it" {% if transcript.language == 'it' %}selected{% endif %}>Italian</option>
+                                <option value="pt" {% if transcript.language == 'pt' %}selected{% endif %}>Portuguese</option>
+                                <option value="ru" {% if transcript.language == 'ru' %}selected{% endif %}>Russian</option>
+                                <option value="ja" {% if transcript.language == 'ja' %}selected{% endif %}>Japanese</option>
+                                <option value="ko" {% if transcript.language == 'ko' %}selected{% endif %}>Korean</option>
+                                <option value="zh" {% if transcript.language == 'zh' %}selected{% endif %}>Chinese</option>
+                                <option value="ar" {% if transcript.language == 'ar' %}selected{% endif %}>Arabic</option>
+                                <option value="hi" {% if transcript.language == 'hi' %}selected{% endif %}>Hindi</option>
+                            </select>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-play-circle me-1"></i>Actions
+                            </label>
+                            <div class="d-flex gap-2" id="transcription-controls">
+                                {% if not transcript or transcript.status == 'failed' %}
+                                    <button type="button" class="btn btn-primary" id="start-transcription">
+                                        <i class="fas fa-play me-1"></i>Start Transcription
+                                    </button>
+                                {% elif transcript.status == 'processing' or transcript.status == 'pending' %}
+                                    <button type="button" class="btn btn-danger" id="stop-transcription">
+                                        <i class="fas fa-stop me-1"></i>Stop Process
+                                    </button>
+                                    <button type="button" class="btn btn-info" id="refresh-status">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                {% elif transcript.status == 'completed' %}
+                                    <button type="button" class="btn btn-success" disabled>
+                                        <i class="fas fa-check me-1"></i>Completed
+                                    </button>
+                                    <button type="button" class="btn btn-warning" id="restart-transcription">
+                                        <i class="fas fa-redo me-1"></i>Redo
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Options -->
+                    {% if transcript and transcript.status == 'completed' %}
+                    <div class="border-top pt-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-download me-1"></i>Export Transcript
+                        </label>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'core:export_transcript' transcript.id %}?format=txt" class="btn btn-outline-primary">
+                                <i class="fas fa-file-alt me-1"></i>Plain Text
+                            </a>
+                            <a href="{% url 'core:export_transcript' transcript.id %}?format=pdf" class="btn btn-outline-primary">
+                                <i class="fas fa-file-pdf me-1"></i>PDF Document
+                            </a>
+                            <a href="{% url 'core:export_transcript' transcript.id %}?format=srt" class="btn btn-outline-primary">
+                                <i class="fas fa-closed-captioning me-1"></i>SRT Subtitles
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Transcript Content -->
+            {% if transcript and transcript.status == 'completed' and transcript.content %}
+            <div class="card">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-text me-2"></i>Transcript Content
+                        </h5>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-primary" id="edit-transcript">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="copy-transcript">
+                                <i class="fas fa-copy me-1"></i>Copy All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Display Mode -->
+                    <div id="transcript-display">
+                        <div class="transcript-content p-3 bg-light border rounded" 
+                             style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; 
+                                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                                    font-size: 0.95em; line-height: 1.7;">{{ transcript.content }}</div>
+                        
+                        <!-- Transcript Statistics -->
+                        <div class="row mt-3 text-muted">
+                            <div class="col-md-4">
+                                <small><i class="fas fa-clock me-1"></i>Duration: {{ recording.get_duration_display }}</small>
+                            </div>
+                            <div class="col-md-4">
+                                <small><i class="fas fa-font me-1"></i>Words: <span id="word-count">{{ transcript.content|wordcount }}</span></small>
+                            </div>
+                            <div class="col-md-4">
+                                <small><i class="fas fa-users me-1"></i>Speakers: {{ transcript.speaker_count }}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Edit Mode -->
+                    <div id="transcript-editor" style="display: none;">
+                        <textarea class="form-control" rows="20" id="transcript-textarea" 
+                                  style="font-family: 'Courier New', monospace; font-size: 0.9em;">{{ transcript.content }}</textarea>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div class="text-muted">
+                                <small><i class="fas fa-info-circle me-1"></i>Use timestamps like [00:05:30] for speaker changes</small>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-primary" id="save-transcript">
+                                    <i class="fas fa-save me-1"></i>Save Changes
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="cancel-edit">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h6 id="loading-message">Processing...</h6>
+                <p class="text-muted mb-0" id="loading-details">Please wait while we process your request.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% csrf_token %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Get transcript status from Django template
+    const transcriptStatus = '{% if transcript %}{{ transcript.status }}{% else %}none{% endif %}';
+    
+    // Elements
+    const startBtn = document.getElementById('start-transcription');
+    const stopBtn = document.getElementById('stop-transcription');
+    const restartBtn = document.getElementById('restart-transcription');
+    const refreshBtn = document.getElementById('refresh-status');
+    const statusDiv = document.getElementById('transcription-status');
+    const controlsDiv = document.getElementById('transcription-controls');
+    const statusIndicator = document.getElementById('status-indicator');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    
+    let statusCheckInterval = null;
+
+    // Utility function to show loading
+    function showLoading(message, details = '') {
+        document.getElementById('loading-message').textContent = message;
+        document.getElementById('loading-details').textContent = details;
+        loadingModal.show();
+    }
+
+    function hideLoading() {
+        loadingModal.hide();
+    }
+
+    // Utility function to show toast notifications
+    function showToast(message, type = 'info') {
+        // Create toast element
+        const toastHTML = `
+            <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        
+        // Add to toast container (create if doesn't exist)
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        const toastElement = document.createElement('div');
+        toastElement.innerHTML = toastHTML;
+        toastContainer.appendChild(toastElement.firstElementChild);
+        
+        const toast = new bootstrap.Toast(toastContainer.lastElementChild);
+        toast.show();
+    }
+
+    // Start transcription
+    if (startBtn) {
+        startBtn.addEventListener('click', function() {
+            const language = document.getElementById('language-select').value;
+            
+            showLoading('Starting Transcription', 'Initializing AI processing...');
+            
+            fetch('/recordings/{{ recording.id }}/transcription/start/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'language=' + language
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showToast('Transcription started successfully!', 'success');
+                    updateStatusToProcessing();
+                    startStatusChecking();
+                } else {
+                    showToast('Error: ' + data.error, 'danger');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                showToast('Network error occurred. Please try again.', 'danger');
+            });
+        });
+    }
+
+    // Stop transcription
+    function setupStopButton() {
+        const stopButton = document.getElementById('stop-transcription');
+        if (stopButton) {
+            stopButton.addEventListener('click', function() {
+                if (confirm('Are you sure you want to stop the transcription? This action cannot be undone.')) {
+                    showLoading('Stopping Transcription', 'Cancelling the process...');
+                    
+                    fetch('/recordings/{{ recording.id }}/transcription/stop/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoading();
+                        if (data.success) {
+                            showToast('Transcription stopped successfully.', 'warning');
+                            updateStatusToFailed();
+                            stopStatusChecking();
+                        } else {
+                            showToast('Error: ' + data.error, 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        console.error('Error:', error);
+                        showToast('Network error occurred.', 'danger');
+                    });
+                }
+            });
+        }
+    }
+
+    // Restart transcription
+    if (restartBtn) {
+        restartBtn.addEventListener('click', function() {
+            if (confirm('This will delete the current transcript and start over. Continue?')) {
+                location.reload();
+            }
+        });
+    }
+
+    // Refresh status
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            showLoading('Checking Status', 'Updating transcription status...');
+            setTimeout(() => {
+                hideLoading();
+                location.reload();
+            }, 1000);
+        });
+    }
+
+    // Status checking functions
+    function startStatusChecking() {
+        statusCheckInterval = setInterval(checkTranscriptionStatus, 10000); // Check every 10 seconds
+    }
+
+    function stopStatusChecking() {
+        if (statusCheckInterval) {
+            clearInterval(statusCheckInterval);
+            statusCheckInterval = null;
+        }
+    }
+
+    function checkTranscriptionStatus() {
+        fetch('/recordings/{{ recording.id }}/transcription/', {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                // If status changed, reload page
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Status check error:', error);
+        });
+    }
+
+    // Update UI functions
+    function updateStatusToProcessing() {
+        statusIndicator.textContent = 'Processing';
+        statusIndicator.className = 'badge bg-warning text-dark';
+        
+        statusDiv.innerHTML = `
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="fas fa-spinner fa-spin fa-2x me-3 text-info"></i>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-2">Transcription in Progress</h6>
+                    <p class="mb-2">Processing audio file using AI transcription...</p>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
+                             style="width: 45%"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block">This may take several minutes depending on file size</small>
+                </div>
+            </div>
+        `;
+        
+        controlsDiv.innerHTML = `
+            <button type="button" class="btn btn-danger" id="stop-transcription">
+                <i class="fas fa-stop me-1"></i>Stop Process
+            </button>
+            <button type="button" class="btn btn-info" id="refresh-status">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+        `;
+        
+        setupStopButton();
+        document.getElementById('refresh-status').addEventListener('click', function() {
+            location.reload();
+        });
+    }
+
+    function updateStatusToFailed() {
+        statusIndicator.textContent = 'Failed';
+        statusIndicator.className = 'badge bg-danger';
+        
+        statusDiv.innerHTML = `
+            <div class="alert alert-danger d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle fa-2x me-3 text-danger"></i>
+                <div>
+                    <h6 class="alert-heading mb-1">Transcription Failed</h6>
+                    <p class="mb-0">The transcription process was cancelled or encountered an error. You can try again.</p>
+                </div>
+            </div>
+        `;
+        
+        controlsDiv.innerHTML = `
+            <button type="button" class="btn btn-primary" id="start-transcription">
+                <i class="fas fa-play me-1"></i>Start Transcription
+            </button>
+        `;
+        
+        // Re-setup start button
+        location.reload();
+    }
+
+    // Setup initial stop button if exists
+    setupStopButton();
+
+    // Transcript editing functionality
+    const editBtn = document.getElementById('edit-transcript');
+    const copyBtn = document.getElementById('copy-transcript');
+    const transcriptDisplay = document.getElementById('transcript-display');
+    const transcriptEditor = document.getElementById('transcript-editor');
+    const saveBtn = document.getElementById('save-transcript');
+    const cancelBtn = document.getElementById('cancel-edit');
+
+    if (editBtn) {
+        editBtn.addEventListener('click', function() {
+            transcriptDisplay.style.display = 'none';
+            transcriptEditor.style.display = 'block';
+        });
+    }
+
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            const content = document.querySelector('.transcript-content').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('Transcript copied to clipboard!', 'success');
+            });
+        });
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            transcriptDisplay.style.display = 'block';
+            transcriptEditor.style.display = 'none';
+        });
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            const content = document.getElementById('transcript-textarea').value;
+            
+            showLoading('Saving Changes', 'Updating transcript content...');
+            
+            fetch('/transcripts/{{ transcript.id }}/update/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({content: content})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    document.querySelector('.transcript-content').textContent = content;
+                    document.getElementById('word-count').textContent = content.split(/\s+/).length;
+                    transcriptDisplay.style.display = 'block';
+                    transcriptEditor.style.display = 'none';
+                    showToast('Transcript updated successfully!', 'success');
+                } else {
+                    showToast('Error: ' + data.error, 'danger');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                showToast('Network error occurred while saving.', 'danger');
+            });
+        });
+    }
+
+    // Auto-start status checking if processing
+    if (transcriptStatus === 'processing') {
+        startStatusChecking();
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        stopStatusChecking();
+    });
+});
+</script>
+{% endblock %}
+{% block extra_css %}
+<style>
+    .transcript-content {
+        background-color: #f8f9fa;
+        border: 2px solid #e9ecef;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.7;
+        letter-spacing: 0.3px;
+    }
+    
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+        border-radius: 0.75rem 0.75rem 0 0 !important;
+        border-bottom: 2px solid rgba(0,0,0,0.1);
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.375rem !important;
+        margin-right: 0.25rem;
+    }
+    
+    .alert {
+        border-radius: 0.5rem;
+        border: none;
+    }
+    
+    .form-select, .form-control {
+        border-radius: 0.5rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+    }
+    
+    .toast-container {
+        z-index: 1055;
+    }
+    
+    #transcript-textarea {
+        resize: vertical;
+        min-height: 400px;
+    }
+    
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+</style>
+{% endblock %}

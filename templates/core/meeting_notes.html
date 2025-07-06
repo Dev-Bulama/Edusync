@@ -1,0 +1,204 @@
+<!-- File Path: meeting_app/templates/core/meeting_notes.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meeting Notes - {{ meeting.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-sticky-note me-2"></i>Meeting Notes
+                        </h5>
+                        <a href="{% url 'core:meeting_detail' meeting.pk %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Meeting
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Meeting Info -->
+                    <div class="alert alert-info">
+                        <h6><strong>{{ meeting.title }}</strong></h6>
+                        <p class="mb-0">{{ meeting.start_datetime|date:"F d, Y" }} at {{ meeting.start_datetime|time:"g:i A" }}</p>
+                    </div>
+
+                    <!-- Add Note Form -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Add New Note</h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        {{ form.title.label_tag }}
+                                        {{ form.title }}
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-12">
+                                        {{ form.content.label_tag }}
+                                        {{ form.content }}
+                                    </div>
+                                </div>
+                                
+                                <!-- Note Type Checkboxes -->
+                                <div class="row mt-3">
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.is_action_item }}
+                                            <label class="form-check-label" for="{{ form.is_action_item.id_for_label }}">
+                                                <i class="fas fa-tasks me-1"></i>Action Item
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.is_decision }}
+                                            <label class="form-check-label" for="{{ form.is_decision.id_for_label }}">
+                                                <i class="fas fa-gavel me-1"></i>Decision
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.is_follow_up }}
+                                            <label class="form-check-label" for="{{ form.is_follow_up.id_for_label }}">
+                                                <i class="fas fa-clock me-1"></i>Follow-up
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Assignment Fields -->
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        {{ form.assigned_to.label_tag }}
+                                        {{ form.assigned_to }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form.due_date.label_tag }}
+                                        {{ form.due_date }}
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary mt-3">
+                                    <i class="fas fa-plus me-1"></i>Add Note
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Notes List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">All Notes</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if notes %}
+                                {% for note in notes %}
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="card-title">
+                                                    {{ note.title }}
+                                                    <!-- Note Type Badges -->
+                                                    {% if note.is_action_item %}
+                                                        <span class="badge bg-warning ms-2">
+                                                            <i class="fas fa-tasks me-1"></i>Action Item
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if note.is_decision %}
+                                                        <span class="badge bg-success ms-1">
+                                                            <i class="fas fa-gavel me-1"></i>Decision
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if note.is_follow_up %}
+                                                        <span class="badge bg-info ms-1">
+                                                            <i class="fas fa-clock me-1"></i>Follow-up
+                                                        </span>
+                                                    {% endif %}
+                                                </h6>
+                                                <p class="card-text">{{ note.content|linebreaks }}</p>
+                                                
+                                                <!-- Assignment Info -->
+                                                {% if note.assigned_to or note.due_date %}
+                                                <div class="mt-2">
+                                                    {% if note.assigned_to %}
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-user me-1"></i>Assigned to: {{ note.assigned_to.get_full_name }}
+                                                        </small>
+                                                    {% endif %}
+                                                    {% if note.due_date %}
+                                                        <small class="text-muted ms-3">
+                                                            <i class="fas fa-calendar me-1"></i>Due: {{ note.due_date|date:"M d, Y g:i A" }}
+                                                        </small>
+                                                    {% endif %}
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <!-- Completion Status -->
+                                            {% if note.is_action_item %}
+                                            <div class="ms-3">
+                                                {% if note.is_completed %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>Completed
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">
+                                                        <i class="fas fa-hourglass-half me-1"></i>Pending
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <hr>
+                                        <small class="text-muted">
+                                            <i class="fas fa-user me-1"></i>{{ note.created_by.get_full_name }}
+                                            <i class="fas fa-clock ms-2 me-1"></i>{{ note.created_at|date:"M d, Y g:i A" }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-sticky-note fa-3x mb-3"></i>
+                                    <p>No notes added yet.</p>
+                                    <p>Add the first note above.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .badge {
+        font-size: 0.75em;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}

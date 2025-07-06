@@ -1,0 +1,325 @@
+<!-- File Path: meeting_app/templates/core/organizer_reports.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports & Analytics - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 bg-success text-white min-vh-100">
+            <div class="p-3">
+                <h5 class="mb-4">
+                    <i class="fas fa-user-tie me-2"></i>Organizer Panel
+                </h5>
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:organizer_dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i>Overview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:my_meetings' %}">
+                            <i class="fas fa-calendar-alt me-2"></i>My Meetings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:meeting_create' %}">
+                            <i class="fas fa-plus me-2"></i>Create Meeting
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:meeting_list' %}">
+                            <i class="fas fa-users me-2"></i>All Meetings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'core:organizer_reports' %}">
+                            <i class="fas fa-chart-bar me-2"></i>Reports
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            <div class="p-4">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0">Reports & Analytics</h1>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-success me-2">{{ stats.total_meetings }} Meetings</span>
+                        <span class="text-muted">Welcome back, {{ user.first_name }}!</span>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Total Meetings</h6>
+                                        <h3 class="mb-0">{{ stats.total_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-calendar-alt fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Upcoming</h6>
+                                        <h3 class="mb-0">{{ stats.upcoming_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-clock fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Action Items</h6>
+                                        <h3 class="mb-0">{{ stats.total_action_items }}</h3>
+                                    </div>
+                                    <i class="fas fa-tasks fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Completed</h6>
+                                        <h3 class="mb-0">{{ stats.completed_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Items and Reports -->
+                <div class="row">
+                    <!-- My Meeting Action Items -->
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Action Items from My Meetings</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if organizer_action_items %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Title</th>
+                                                    <th>Meeting</th>
+                                                    <th>Assigned To</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in organizer_action_items %}
+                                                <tr>
+                                                    <td>
+                                                        <a href="{% url 'core:action_item_detail' item.id %}" class="text-decoration-none">
+                                                            {{ item.title|truncatechars:25 }}
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <small>{{ item.meeting.title|truncatechars:20 }}</small>
+                                                    </td>
+                                                    <td>
+                                                        {% if item.assigned_to %}
+                                                            <small>{{ item.assigned_to.first_name }}</small>
+                                                        {% else %}
+                                                            <small class="text-muted">Unassigned</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-{{ item.status|yesno:'success,primary,warning,secondary' }}">
+                                                            {{ item.get_status_display }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center text-muted py-3">
+                                        <i class="fas fa-tasks fa-2x mb-2"></i>
+                                        <p>No action items from your meetings</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Assigned to Me -->
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Assigned to Me</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if assigned_items %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Title</th>
+                                                    <th>Priority</th>
+                                                    <th>Due Date</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in assigned_items %}
+                                                <tr>
+                                                    <td>
+                                                        <a href="{% url 'core:action_item_detail' item.id %}" class="text-decoration-none">
+                                                            {{ item.title|truncatechars:25 }}
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-{{ item.priority|yesno:'danger,warning,info,secondary' }}">
+                                                            {{ item.get_priority_display }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {% if item.due_date %}
+                                                            <small>{{ item.due_date|date:"M d" }}</small>
+                                                        {% else %}
+                                                            <small class="text-muted">No due date</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-{{ item.status|yesno:'success,primary,warning,secondary' }}">
+                                                            {{ item.get_status_display }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center text-muted py-3">
+                                        <i class="fas fa-user-check fa-2x mb-2"></i>
+                                        <p>No action items assigned to you</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Meetings Summary -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Recent Meetings Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if user_meetings %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Meeting</th>
+                                                    <th>Date</th>
+                                                    <th>Participants</th>
+                                                    <th>Status</th>
+                                                    <th>Action Items</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for meeting in user_meetings %}
+                                                <tr>
+                                                    <td>
+                                                        <a href="{% url 'core:meeting_detail' meeting.pk %}" class="text-decoration-none">
+                                                            {{ meeting.title }}
+                                                        </a>
+                                                    </td>
+                                                    <td>{{ meeting.start_datetime|date:"M d, Y" }}</td>
+                                                    <td>{{ meeting.participant_count }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ meeting.status|yesno:'success,primary,warning,secondary' }}">
+                                                            {{ meeting.get_status_display }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-info">{{ meeting.action_items.count }}</span>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center text-muted py-3">
+                                        <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                                        <p>No meetings organized yet</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .min-vh-100 {
+        min-height: 100vh;
+    }
+    
+    .nav-link.active {
+        background-color: #198754 !important;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.85em;
+    }
+    
+    .opacity-75 {
+        opacity: 0.75;
+    }
+</style>
+{% endblock %}

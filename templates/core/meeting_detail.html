@@ -1,0 +1,446 @@
+<!-- File Path: meeting_app/templates/core/meeting_detail.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ meeting.title }} - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+      <!-- Meeting Header -->
+<div class="col-12 mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="h3 mb-2">{{ meeting.title }}</h1>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-{{ meeting.status|yesno:'success,primary,secondary,danger,warning' }} fs-6">
+                            {{ meeting.get_status_display }}
+                        </span>
+                        <span class="badge bg-{{ meeting.priority|yesno:'danger,warning,success,info' }} fs-6">
+                            {{ meeting.get_priority_display }}
+                        </span>
+                        <span class="badge bg-info fs-6">
+                            {{ meeting.get_meeting_type_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="btn-group">
+                        {% if can_edit %}
+                            <a href="{% url 'core:meeting_edit' meeting.pk %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </a>
+                        {% endif %}
+                        
+                        <!-- Recording Button -->
+                        {% if user == meeting.organizer or participants|length > 0 %}
+                            <a href="{% url 'core:meeting_recording_interface' meeting.pk %}" class="btn btn-warning">
+                                <i class="fas fa-microphone me-1"></i>Record
+                            </a>
+                        {% endif %}
+                           <!-- Join Meeting Button -->
+                        {% if meeting.is_upcoming or meeting.is_ongoing or user == meeting.organizer %}
+                            <a href="{% url 'core:meeting_room' meeting.pk %}" class="btn btn-success">
+                                <i class="fas fa-video me-1"></i>Join Meeting
+                            </a>
+                        {% endif %}
+                        {% if can_edit %}
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        {% endif %}
+       <!-- AI Summary Button -->
+{% if meeting.status == 'completed' or meeting.status == 'in_progress' or meeting.recordings.exists %}
+    <a href="{% url 'core:meeting_ai_summary' meeting.id %}" class="btn btn-info">
+        <i class="fas fa-brain me-1"></i>AI Summary
+    </a>
+{% endif %}
+<!-- Quick Actions Dropdown -->
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v me-1"></i>More
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'core:meeting_notes' meeting.pk %}">
+                                    <i class="fas fa-sticky-note me-2"></i>Meeting Notes
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'core:meeting_attachments' meeting.pk %}">
+                                    <i class="fas fa-paperclip me-2"></i>Attachments
+                                </a></li>
+                                {% if meeting.recordings.exists %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% for recording in meeting.recordings.all|slice:":3" %}
+                                        <li><a class="dropdown-item" href="{% url 'core:recording_transcription' recording.id %}">
+                                            <i class="fas fa-file-alt me-2"></i>Transcription #{{ forloop.counter }}
+                                        </a></li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Meeting Details -->
+        <!-- Meeting Details -->
+        <div class="col-lg-8">
+            <!-- Meeting Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Meeting Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-1"></i>Date & Time
+                                </label>
+                                <p class="mb-0">{{ meeting.start_datetime|date:"l, F d, Y" }}</p>
+                                <p class="mb-0">{{ meeting.start_datetime|time:"g:i A" }} - {{ meeting.end_datetime|time:"g:i A" }}</p>
+                                <small class="text-muted">Duration: {{ meeting.duration }} minutes</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-user me-1"></i>Organizer
+                                </label>
+                                <p class="mb-0">{{ meeting.organizer.get_full_name }}</p>
+                                <small class="text-muted">{{ meeting.organizer.email }}</small>
+                            </div>
+                        </div>
+                        {% if meeting.location %}
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-map-marker-alt me-1"></i>Location
+                                </label>
+                                <p class="mb-0">{{ meeting.location }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if meeting.meeting_url %}
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-link me-1"></i>Meeting Link
+                                </label>
+                                <p class="mb-0">
+                                    <a href="{{ meeting.meeting_url }}" target="_blank" class="text-primary">
+                                        Join Online <i class="fas fa-external-link-alt ms-1"></i>
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if meeting.description %}
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-align-left me-1"></i>Description
+                                </label>
+                                <p class="mb-0">{{ meeting.description|linebreaks }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meeting Agenda -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Agenda
+                    </h5>
+                    {% if can_edit %}
+                    <a href="{% url 'core:meeting_agenda' meeting.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit me-1"></i>Manage
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if agenda_items %}
+                    <div class="list-group list-group-flush">
+                        {% for item in agenda_items %}
+                        <div class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">{{ forloop.counter }}. {{ item.title }}</div>
+                                {% if item.description %}
+                                <p class="mb-1">{{ item.description }}</p>
+                                {% endif %}
+                                {% if item.presenter %}
+                                <small class="text-muted">Presenter: {{ item.presenter.get_full_name }}</small>
+                                {% endif %}
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ item.duration_minutes }} min</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">
+                        No agenda items added yet.
+                        {% if can_edit %}
+                        <a href="{% url 'core:meeting_agenda' meeting.pk %}" class="text-primary">Add agenda items</a>
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Meeting Notes -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>Notes & Actions
+                    </h5>
+                    <a href="{% url 'core:meeting_notes' meeting.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus me-1"></i>Add Note
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if notes %}
+                    <div class="row">
+                        {% for note in notes|slice:":3" %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-start border-primary border-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="mb-0">{{ note.title }}</h6>
+                                        <div>
+                                            {% if note.is_action_item %}
+                                            <span class="badge bg-warning">Action</span>
+                                            {% endif %}
+                                            {% if note.is_decision %}
+                                            <span class="badge bg-success">Decision</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <p class="mb-1">{{ note.content|truncatewords:20 }}</p>
+                                    <small class="text-muted">
+                                        by {{ note.created_by.get_full_name }} • {{ note.created_at|date:"M d, Y" }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if notes.count > 3 %}
+                    <div class="text-center">
+                        <a href="{% url 'core:meeting_notes' meeting.pk %}" class="btn btn-sm btn-outline-primary">
+                            View all {{ notes.count }} notes
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted text-center py-3">
+                        No notes added yet.
+                        <a href="{% url 'core:meeting_notes' meeting.pk %}" class="text-primary">Add the first note</a>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Meeting Attachments -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-paperclip me-2"></i>Attachments
+                    </h5>
+                    <a href="{% url 'core:meeting_attachments' meeting.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-upload me-1"></i>Upload
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if attachments %}
+                    <div class="list-group list-group-flush">
+                        {% for attachment in attachments|slice:":3" %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-file me-2"></i>
+                                <strong>{{ attachment.title }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ attachment.file_size }} MB • {{ attachment.created_at|date:"M d, Y" }}
+                                </small>
+                            </div>
+                            <a href="{{ attachment.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if attachments.count > 3 %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'core:meeting_attachments' meeting.pk %}" class="btn btn-sm btn-outline-primary">
+                            View all {{ attachments.count }} attachments
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted text-center py-3">
+                        No attachments uploaded yet.
+                        <a href="{% url 'core:meeting_attachments' meeting.pk %}" class="text-primary">Upload the first attachment</a>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Participants -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Participants
+                    </h5>
+                    {% if can_edit %}
+                    <a href="{% url 'core:meeting_participants' meeting.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-user-plus me-1"></i>Invite
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if participants %}
+                    <div class="list-group list-group-flush">
+                        {% for participant in participants|slice:":5" %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary rounded-circle text-white me-2 d-flex align-items-center justify-content-center" 
+                                     style="width: 32px; height: 32px;">
+                                    {{ participant.user.first_name|first|upper }}
+                                </div>
+                                <div>
+                                    <strong>{{ participant.user.get_full_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ participant.get_role_display }}</small>
+                                </div>
+                            </div>
+                            <span class="badge bg-{{ participant.status|yesno:'success,secondary,danger,warning' }}">
+                                {{ participant.get_status_display }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if participants.count > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'core:meeting_participants' meeting.pk %}" class="btn btn-sm btn-outline-primary">
+                            View all {{ participants.count }} participants
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted text-center py-3">
+                        No participants invited yet.
+                        {% if can_edit %}
+                        <a href="{% url 'core:meeting_participants' meeting.pk %}" class="text-primary">Invite participants</a>
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Meeting Stats -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Meeting Stats
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-primary mb-0">{{ participants.count }}</h4>
+                                <small class="text-muted">Participants</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success mb-0">{{ meeting.duration }}</h4>
+                            <small class="text-muted">Minutes</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Actions -->
+            {% if user_participation %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-check me-2"></i>Your Response
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <p class="mb-3">
+                            Status: <span class="badge bg-{{ user_participation.status|yesno:'success,secondary,danger,warning' }}">
+                                {{ user_participation.get_status_display }}
+                            </span>
+                        </p>
+                        {% if user_participation.status == 'pending' %}
+                        <a href="{% url 'core:respond_invitation' user_participation.pk %}" class="btn btn-primary">
+                            <i class="fas fa-reply me-1"></i>Respond to Invitation
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+{% if can_edit %}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Meeting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this meeting? This action cannot be undone.</p>
+                <p><strong>{{ meeting.title }}</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="{% url 'core:meeting_delete' meeting.pk %}" class="btn btn-danger">Delete Meeting</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .badge {
+        font-size: 0.75rem;
+    }
+    
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .list-group-item:first-child {
+        border-top: none;
+    }
+    
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+</style>
+{% endblock %}

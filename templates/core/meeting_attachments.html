@@ -1,0 +1,186 @@
+<!-- File Path: meeting_app/templates/core/meeting_attachments.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meeting Attachments - {{ meeting.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-paperclip me-2"></i>Meeting Attachments
+                        </h5>
+                        <a href="{% url 'core:meeting_detail' meeting.pk %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Meeting
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Meeting Info -->
+                    <div class="alert alert-info">
+                        <h6><strong>{{ meeting.title }}</strong></h6>
+                        <p class="mb-0">{{ meeting.start_datetime|date:"F d, Y" }} at {{ meeting.start_datetime|time:"g:i A" }}</p>
+                    </div>
+
+                    <!-- Upload Attachment Form -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Upload New Attachment</h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form.title.label_tag }}
+                                        {{ form.title }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form.file.label_tag }}
+                                        {{ form.file }}
+                                        <small class="form-text text-muted">
+                                            Supported formats: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, JPG, JPEG, PNG
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-12">
+                                        {{ form.description.label_tag }}
+                                        {{ form.description }}
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary mt-3">
+                                    <i class="fas fa-upload me-1"></i>Upload Attachment
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Attachments List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">All Attachments</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if attachments %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>File</th>
+                                                <th>Size</th>
+                                                <th>Uploaded By</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for attachment in attachments %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <!-- File Type Icon -->
+                                                        {% if attachment.file.name|lower|slice:"-3:" == "pdf" %}
+                                                            <i class="fas fa-file-pdf text-danger fa-lg me-2"></i>
+                                                        {% elif attachment.file.name|lower|slice:"-3:" == "doc" or attachment.file.name|lower|slice:"-4:" == "docx" %}
+                                                            <i class="fas fa-file-word text-primary fa-lg me-2"></i>
+                                                        {% elif attachment.file.name|lower|slice:"-3:" == "ppt" or attachment.file.name|lower|slice:"-4:" == "pptx" %}
+                                                            <i class="fas fa-file-powerpoint text-warning fa-lg me-2"></i>
+                                                        {% elif attachment.file.name|lower|slice:"-3:" == "xls" or attachment.file.name|lower|slice:"-4:" == "xlsx" %}
+                                                            <i class="fas fa-file-excel text-success fa-lg me-2"></i>
+                                                        {% elif attachment.file.name|lower|slice:"-3:" == "jpg" or attachment.file.name|lower|slice:"-4:" == "jpeg" or attachment.file.name|lower|slice:"-3:" == "png" %}
+                                                            <i class="fas fa-file-image text-info fa-lg me-2"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-file text-secondary fa-lg me-2"></i>
+                                                        {% endif %}
+                                                        
+                                                        <div>
+                                                            <strong>{{ attachment.title }}</strong>
+                                                            <br>
+                                                            <small class="text-muted">{{ attachment.file.name|slice:"18:" }}</small>
+                                                            {% if attachment.description %}
+                                                                <br>
+                                                                <small class="text-muted">{{ attachment.description|truncatechars:50 }}</small>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark">{{ attachment.file_size }} MB</span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        {% if attachment.uploaded_by.userprofile.profile_picture %}
+                                                            <img src="{{ attachment.uploaded_by.userprofile.profile_picture.url }}" alt="Profile" class="rounded-circle me-2" width="24" height="24">
+                                                        {% else %}
+                                                            <div class="bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 10px;">
+                                                                {{ attachment.uploaded_by.first_name|first|upper }}
+                                                            </div>
+                                                        {% endif %}
+                                                        <small>{{ attachment.uploaded_by.get_full_name }}</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">{{ attachment.created_at|date:"M d, Y" }}</small>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{{ attachment.file.url }}" class="btn btn-outline-primary" target="_blank">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{{ attachment.file.url }}" class="btn btn-outline-success" download>
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-paperclip fa-3x mb-3"></i>
+                                    <p>No attachments uploaded yet.</p>
+                                    <p>Upload the first attachment above.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+    }
+    
+    .file-icon {
+        width: 32px;
+        height: 32px;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,260 @@
+<!-- File Path: meeting_app/templates/core/invitation_response.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Respond to Invitation - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-envelope-open me-2"></i>Meeting Invitation
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Meeting Details -->
+                    <div class="meeting-details mb-4">
+                        <h4 class="text-center mb-3">{{ meeting.title }}</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="detail-item mb-3">
+                                    <i class="fas fa-calendar text-primary me-2"></i>
+                                    <strong>Date:</strong> {{ meeting.start_datetime|date:"l, F d, Y" }}
+                                </div>
+                                <div class="detail-item mb-3">
+                                    <i class="fas fa-clock text-primary me-2"></i>
+                                    <strong>Time:</strong> {{ meeting.start_datetime|time:"g:i A" }} - {{ meeting.end_datetime|time:"g:i A" }}
+                                </div>
+                                <div class="detail-item mb-3">
+                                    <i class="fas fa-hourglass-half text-primary me-2"></i>
+                                    <strong>Duration:</strong> {{ meeting.duration }} minutes
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="detail-item mb-3">
+                                    <i class="fas fa-user text-primary me-2"></i>
+                                    <strong>Organizer:</strong> {{ meeting.organizer.get_full_name }}
+                                </div>
+                                <div class="detail-item mb-3">
+                                    <i class="fas fa-tag text-primary me-2"></i>
+                                    <strong>Type:</strong> {{ meeting.get_meeting_type_display }}
+                                </div>
+                                <div class="detail-item mb-3">
+                                    <i class="fas fa-users text-primary me-2"></i>
+                                    <strong>Your Role:</strong> {{ participant.get_role_display }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if meeting.location %}
+                        <div class="detail-item mb-3">
+                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                            <strong>Location:</strong> {{ meeting.location }}
+                        </div>
+                        {% endif %}
+                        
+                        {% if meeting.meeting_url %}
+                        <div class="detail-item mb-3">
+                            <i class="fas fa-link text-primary me-2"></i>
+                            <strong>Meeting Link:</strong> 
+                            <a href="{{ meeting.meeting_url }}" target="_blank" class="text-primary">
+                                Join Online <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        {% if meeting.description %}
+                        <div class="detail-item mb-3">
+                            <i class="fas fa-align-left text-primary me-2"></i>
+                            <strong>Description:</strong>
+                            <p class="mt-2">{{ meeting.description|linebreaks }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Invitation Details -->
+                    <div class="invitation-details bg-light p-3 rounded mb-4">
+                        <h6 class="mb-2">
+                            <i class="fas fa-info-circle me-2"></i>Invitation Details
+                        </h6>
+                        <p class="mb-1">
+                            <strong>Invited by:</strong> {{ participant.invited_by.get_full_name }}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Invited on:</strong> {{ participant.invited_at|date:"F d, Y g:i A" }}
+                        </p>
+                        <p class="mb-0">
+                            <strong>Current Status:</strong> 
+                            <span class="badge bg-{{ participant.status|yesno:'success,secondary,danger,warning' }}">
+                                {{ participant.get_status_display }}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    <!-- Response Form -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-reply me-2"></i>Your Response
+                            </label>
+                            <div class="response-options">
+                                {% for value, label in form.status.field.choices %}
+                                <div class="form-check form-check-inline response-option">
+                                    <input class="form-check-input" type="radio" name="status" id="status_{{ value }}" value="{{ value }}" 
+                                           {% if form.status.value == value %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_{{ value }}">
+                                        {% if value == 'accepted' %}
+                                            <i class="fas fa-check-circle text-success me-1"></i>
+                                        {% elif value == 'declined' %}
+                                            <i class="fas fa-times-circle text-danger me-1"></i>
+                                        {% elif value == 'tentative' %}
+                                            <i class="fas fa-question-circle text-warning me-1"></i>
+                                        {% endif %}
+                                        {{ label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.status.errors %}
+                                <div class="text-danger mt-2">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Additional Message -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-comment me-2"></i>Additional Message (Optional)
+                            </label>
+                            <textarea class="form-control" name="message" rows="3" 
+                                      placeholder="Add a message to the organizer..."></textarea>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'core:meeting_detail' meeting.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-eye me-2"></i>View Meeting Details
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Send Response
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="text-center mt-4">
+                <a href="{% url 'core:my_meetings' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-calendar-alt me-2"></i>View My Meetings
+                </a>
+                <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .meeting-details {
+        border-left: 4px solid #0d6efd;
+        padding-left: 1rem;
+    }
+    
+    .detail-item {
+        padding: 0.5rem 0;
+    }
+    
+    .response-options {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+    
+    .response-option {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .form-check-label {
+        font-weight: 500;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border: 2px solid transparent;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .form-check-input:checked + .form-check-label {
+        background-color: rgba(13, 110, 253, 0.1);
+        border-color: #0d6efd;
+    }
+    
+    .form-check-label:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    .invitation-details {
+        border-left: 4px solid #6c757d;
+    }
+    
+    .card {
+        border-radius: 15px;
+    }
+    
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+    
+    .btn {
+        border-radius: 25px;
+        padding: 0.5rem 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add visual feedback for form submission
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+        submitBtn.disabled = true;
+        
+        // If form validation fails, restore button
+        setTimeout(() => {
+            if (submitBtn.disabled) {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }, 5000);
+    });
+    
+    // Add confirmation for decline
+    document.getElementById('status_declined').addEventListener('change', function() {
+        if (this.checked) {
+            if (!confirm('Are you sure you want to decline this meeting invitation?')) {
+                this.checked = false;
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,207 @@
+<!-- File Path: meeting_app/templates/core/meeting_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meetings - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>Meetings
+                </h1>
+                {% if user.userprofile.user_type == 'organizer' or user.userprofile.user_type == 'admin' %}
+                <a href="{% url 'core:meeting_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Create Meeting
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Search and Filter Form -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            {{ form.search }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.status }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.meeting_type }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.priority }}
+                        </div>
+                        <div class="col-md-2">
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-search me-1"></i>Search
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.date_from }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.date_to }}
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'core:meeting_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Meetings List -->
+            <div class="row">
+                {% for meeting in meetings %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 meeting-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">{{ meeting.title }}</h6>
+                            <span class="badge bg-{{ meeting.priority|yesno:'danger,warning,success,info' }}">
+                                {{ meeting.get_priority_display }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-calendar me-2 text-primary"></i>
+                                <small>{{ meeting.start_datetime|date:"M d, Y" }}</small>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-clock me-2 text-primary"></i>
+                                <small>{{ meeting.start_datetime|time:"g:i A" }} - {{ meeting.end_datetime|time:"g:i A" }}</small>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-user me-2 text-primary"></i>
+                                <small>{{ meeting.organizer.get_full_name }}</small>
+                            </div>
+                            {% if meeting.location %}
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                                <small>{{ meeting.location }}</small>
+                            </div>
+                            {% endif %}
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-users me-2 text-primary"></i>
+                                <small>{{ meeting.participant_count }} participants</small>
+                            </div>
+                            
+                            {% if meeting.description %}
+                            <p class="card-text text-muted">
+                                {{ meeting.description|truncatewords:15 }}
+                            </p>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-{{ meeting.status|yesno:'success,primary,secondary,danger,warning' }}">
+                                    {{ meeting.get_status_display }}
+                                </span>
+                                <small class="text-muted">
+                                    {{ meeting.get_meeting_type_display }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'core:meeting_detail' meeting.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                                {% if meeting.can_edit %}
+                                <a href="{% url 'core:meeting_edit' meeting.pk %}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-edit me-1"></i>Edit
+                                </a>
+                                {% endif %}
+                                {% if meeting.is_upcoming and meeting.can_join %}
+                                <a href="#" class="btn btn-sm btn-success">
+                                    <i class="fas fa-video me-1"></i>Join
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h4>No meetings found</h4>
+                        <p class="text-muted">
+                            {% if user.userprofile.user_type == 'organizer' or user.userprofile.user_type == 'admin' %}
+                                Start by creating your first meeting!
+                            {% else %}
+                                You'll see meetings here once you're invited to them.
+                            {% endif %}
+                        </p>
+                        {% if user.userprofile.user_type == 'organizer' or user.userprofile.user_type == 'admin' %}
+                        <a href="{% url 'core:meeting_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create First Meeting
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if meetings.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if meetings.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ meetings.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in meetings.paginator.page_range %}
+                    {% if meetings.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if meetings.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ meetings.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .meeting-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .meeting-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+    
+    .card-footer {
+        background-color: rgba(0, 0, 0, 0.02);
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+</style>
+{% endblock %}

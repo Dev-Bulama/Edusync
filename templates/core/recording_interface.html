@@ -1,0 +1,538 @@
+<!-- File Path: meeting_app/templates/core/recording_interface.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Recording Interface - {{ meeting.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.recording-controls {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 30px;
+    color: white;
+    margin-bottom: 30px;
+}
+
+.record-button {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: none;
+    font-size: 24px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.record-button.inactive {
+    background: #dc3545;
+    color: white;
+}
+
+.record-button.active {
+    background: #28a745;
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.audio-visualizer {
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.visualizer-bar {
+    width: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    margin: 0 1px;
+    border-radius: 2px;
+    transition: height 0.1s ease;
+}
+
+.recording-info {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.recording-timer {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+}
+
+.recording-quality {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.quality-option {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.quality-option.selected {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.recording-list {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.recording-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.recording-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.recording-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-recording { background: #fff3cd; color: #856404; }
+.status-processing { background: #d1ecf1; color: #0c5460; }
+.status-completed { background: #d4edda; color: #155724; }
+.status-failed { background: #f8d7da; color: #721c24; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-microphone me-2"></i>Recording Interface
+                </h2>
+                <a href="{% url 'core:meeting_detail' meeting.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Meeting
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meeting Info -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ meeting.title }}</h5>
+                    <p class="card-text">{{ meeting.description|truncatewords:30 }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>{{ meeting.start_datetime|date:"M j, Y" }}
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>{{ meeting.start_datetime|time:"H:i" }} - {{ meeting.end_datetime|time:"H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recording Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="recording-controls">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <button id="recordButton" class="record-button inactive" onclick="toggleRecording()">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <div class="mt-3">
+                            <div id="recordingStatus" class="h5">Ready to Record</div>
+                            <div id="recordingTimer" class="recording-timer">00:00</div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="audio-visualizer" id="audioVisualizer">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-volume-up me-2"></i>Audio Visualizer
+                            </div>
+                        </div>
+                        
+                        <div class="recording-info">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Recording Quality</label>
+                                    <div class="recording-quality">
+                                        <div class="quality-option" data-quality="medium">
+                                            <small>Medium</small><br>
+                                            <strong>64kbps</strong>
+                                        </div>
+                                        <div class="quality-option selected" data-quality="high">
+                                            <small>High</small><br>
+                                            <strong>128kbps</strong>
+                                        </div>
+                                        <div class="quality-option" data-quality="premium">
+                                            <small>Premium</small><br>
+                                            <strong>256kbps</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Recording Title</label>
+                                    <input type="text" class="form-control" id="recordingTitle" 
+                                           value="{{ meeting.title }} - Recording" 
+                                           placeholder="Enter recording title">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Recordings -->
+    <div class="row">
+        <div class="col-12">
+            <div class="recording-list">
+                <h4 class="mb-3">
+                    <i class="fas fa-headphones me-2"></i>Meeting Recordings
+                </h4>
+                
+                {% if recordings %}
+                    {% for recording in recordings %}
+                    <div class="recording-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h6 class="mb-1">{{ recording.title }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ recording.recorded_by.get_full_name }}
+                                    <i class="fas fa-calendar ms-2 me-1"></i>{{ recording.created_at|date:"M j, Y H:i" }}
+                                </small>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="recording-status status-{{ recording.status }}">
+                                    {{ recording.get_status_display }}
+                                </span>
+                                {% if recording.duration %}
+                                    <div class="small text-muted mt-1">
+                                        <i class="fas fa-clock me-1"></i>{{ recording.get_duration_display }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 text-end">
+                                {% if recording.status == 'completed' %}
+                                    <a href="{% url 'core:recording_detail' recording.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-play me-1"></i>Play
+                                    </a>
+                                    <a href="{% url 'core:download_recording' recording.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-download me-1"></i>Download
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-microphone-slash fa-3x text-muted mb-3"></i>
+                        <h5>No recordings yet</h5>
+                        <p class="text-muted">Start your first recording using the controls above.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let mediaRecorder;
+let recordingStream;
+let recordingChunks = [];
+let isRecording = false;
+let recordingStartTime;
+let timerInterval;
+let currentRecordingId = null;
+let audioContext;
+let analyser;
+let microphone;
+
+// Initialize audio recording
+async function initializeAudio() {
+    try {
+        recordingStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                sampleRate: 44100
+            } 
+        });
+        
+        // Setup audio context for visualization
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        microphone = audioContext.createMediaStreamSource(recordingStream);
+        microphone.connect(analyser);
+        
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        // Create visualizer
+        createVisualizer(analyser, dataArray);
+        
+        return true;
+    } catch (error) {
+        console.error('Error accessing microphone:', error);
+        alert('Unable to access microphone. Please check your permissions.');
+        return false;
+    }
+}
+
+function createVisualizer(analyser, dataArray) {
+    const visualizer = document.getElementById('audioVisualizer');
+    visualizer.innerHTML = '';
+    
+    // Create visualizer bars
+    for (let i = 0; i < 32; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'visualizer-bar';
+        bar.style.height = '10px';
+        visualizer.appendChild(bar);
+    }
+    
+    const bars = visualizer.querySelectorAll('.visualizer-bar');
+    
+    function updateVisualizer() {
+        if (!isRecording) return;
+        
+        analyser.getByteFrequencyData(dataArray);
+        
+        bars.forEach((bar, index) => {
+            const value = dataArray[index * 8];
+            const height = Math.max(10, (value / 255) * 80);
+            bar.style.height = height + 'px';
+        });
+        
+        requestAnimationFrame(updateVisualizer);
+    }
+    
+    updateVisualizer();
+}
+
+async function toggleRecording() {
+    if (!isRecording) {
+        await startRecording();
+    } else {
+        await stopRecording();
+    }
+}
+
+async function startRecording() {
+    const initialized = await initializeAudio();
+    if (!initialized) return;
+    
+    try {
+        // Start recording on server
+        const response = await fetch(`/meetings/${window.location.pathname.split('/')[2]}/recording/start/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        if (!data.success) {
+            alert('Error starting recording: ' + data.error);
+            return;
+        }
+        
+        currentRecordingId = data.recording_id;
+        
+        // Setup MediaRecorder
+        mediaRecorder = new MediaRecorder(recordingStream, {
+            mimeType: 'audio/webm;codecs=opus'
+        });
+        
+        recordingChunks = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordingChunks.push(event.data);
+                // Upload chunk to server
+                uploadChunk(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(recordingChunks, { type: 'audio/webm' });
+            // Final upload
+            uploadFinalRecording(blob);
+        };
+        
+        mediaRecorder.start(1000); // Collect data every second
+        
+        isRecording = true;
+        recordingStartTime = Date.now();
+        
+        // Update UI
+        document.getElementById('recordButton').className = 'record-button active';
+        document.getElementById('recordButton').innerHTML = '<i class="fas fa-stop"></i>';
+        document.getElementById('recordingStatus').textContent = 'Recording...';
+        
+        // Start timer
+        startTimer();
+        
+    } catch (error) {
+        console.error('Error starting recording:', error);
+        alert('Error starting recording: ' + error.message);
+    }
+}
+
+async function stopRecording() {
+    if (!isRecording) return;
+    
+    try {
+        mediaRecorder.stop();
+        
+        // Stop recording on server
+        const response = await fetch(`/recordings/${currentRecordingId}/stop/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        if (!data.success) {
+            console.error('Error stopping recording:', data.error);
+        }
+        
+        isRecording = false;
+        
+        // Update UI
+        document.getElementById('recordButton').className = 'record-button inactive';
+        document.getElementById('recordButton').innerHTML = '<i class="fas fa-microphone"></i>';
+        document.getElementById('recordingStatus').textContent = 'Processing...';
+        
+        // Stop timer
+        clearInterval(timerInterval);
+        
+        // Clean up
+        recordingStream.getTracks().forEach(track => track.stop());
+        
+        // Reload page to show new recording
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error stopping recording:', error);
+        alert('Error stopping recording: ' + error.message);
+    }
+}
+
+function uploadChunk(chunk) {
+    const formData = new FormData();
+    formData.append('audio_chunk', chunk);
+    
+    fetch(`/recordings/${currentRecordingId}/upload-chunk/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    }).catch(error => {
+        console.error('Error uploading chunk:', error);
+    });
+}
+
+function uploadFinalRecording(blob) {
+    const formData = new FormData();
+    formData.append('audio_file', blob, 'recording.webm');
+    formData.append('title', document.getElementById('recordingTitle').value);
+    
+    fetch(`/recordings/${currentRecordingId}/upload-final/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    }).catch(error => {
+        console.error('Error uploading final recording:', error);
+    });
+}
+
+function startTimer() {
+    timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        document.getElementById('recordingTimer').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }, 1000);
+}
+
+// Quality selection
+document.querySelectorAll('.quality-option').forEach(option => {
+    option.addEventListener('click', function() {
+        document.querySelectorAll('.quality-option').forEach(opt => opt.classList.remove('selected'));
+        this.classList.add('selected');
+    });
+});
+
+// CSRF token helper
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

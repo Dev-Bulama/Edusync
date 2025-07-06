@@ -1,0 +1,309 @@
+<!-- File Path: meeting_app/templates/core/meeting_participants.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Participants - {{ meeting.title }} - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-users me-2"></i>Meeting Participants
+                    </h1>
+                    <p class="text-muted mb-0">{{ meeting.title }}</p>
+                </div>
+                <a href="{% url 'core:meeting_detail' meeting.pk %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Meeting
+                </a>
+            </div>
+
+            <div class="row">
+                <!-- Add Participants -->
+                <div class="col-lg-8">
+                    <!-- Current Participants -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-friends me-2"></i>Current Participants
+                                <span class="badge bg-primary">{{ participants.count }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if participants %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Participant</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Invited</th>
+                                            <th>Response</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for participant in participants %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-primary rounded-circle text-white me-3 d-flex align-items-center justify-content-center" 
+                                                         style="width: 40px; height: 40px;">
+                                                        {{ participant.user.first_name|first|upper }}
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ participant.user.get_full_name }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">{{ participant.user.email }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ participant.get_role_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ participant.status|yesno:'success,secondary,danger,warning' }}">
+                                                    {{ participant.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ participant.invited_at|date:"M d, Y" }}
+                                                    <br>
+                                                    by {{ participant.invited_by.get_full_name }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {% if participant.response_at %}
+                                                <small class="text-muted">
+                                                    {{ participant.response_at|date:"M d, Y g:i A" }}
+                                                </small>
+                                                {% else %}
+                                                <small class="text-muted">No response</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" 
+                                                            data-bs-target="#editParticipant{{ participant.id }}">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" data-bs-toggle="modal" 
+                                                            data-bs-target="#removeParticipant{{ participant.id }}">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                                <h5>No participants yet</h5>
+                                <p class="text-muted">Add participants to your meeting using the form on the right.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-pie me-2"></i>Participant Statistics
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="stat-item">
+                                        <h3 class="text-primary">{{ participants.count }}</h3>
+                                        <small class="text-muted">Total Invited</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-item">
+                                        <h3 class="text-success">{{ participants|length }}</h3>
+                                        <small class="text-muted">Accepted</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-item">
+                                        <h3 class="text-warning">0</h3>
+                                        <small class="text-muted">Pending</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-item">
+                                        <h3 class="text-danger">0</h3>
+                                        <small class="text-muted">Declined</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Participants Form -->
+                <div class="col-lg-4">
+                    <!-- Add Existing Users -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-plus me-2"></i>Add Participants
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="add_participants" value="1">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Select Users</label>
+                                    {{ form.users }}
+                                    {% if form.users.errors %}
+                                        <div class="text-danger">{{ form.users.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.role.id_for_label }}" class="form-label">Role</label>
+                                    {{ form.role }}
+                                    {% if form.role.errors %}
+                                        <div class="text-danger">{{ form.role.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-plus me-2"></i>Add Selected Users
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Quick Invite by Email -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-envelope me-2"></i>Quick Invite
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="quick_invite" value="1">
+                                
+                                <div class="mb-3">
+                                    <label for="{{ quick_form.email.id_for_label }}" class="form-label">Email Address</label>
+                                    {{ quick_form.email }}
+                                    {% if quick_form.email.errors %}
+                                        <div class="text-danger">{{ quick_form.email.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ quick_form.role.id_for_label }}" class="form-label">Role</label>
+                                    {{ quick_form.role }}
+                                    {% if quick_form.role.errors %}
+                                        <div class="text-danger">{{ quick_form.role.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ quick_form.message.id_for_label }}" class="form-label">Message (Optional)</label>
+                                    {{ quick_form.message }}
+                                    {% if quick_form.message.errors %}
+                                        <div class="text-danger">{{ quick_form.message.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Invitation
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Participant Modals -->
+{% for participant in participants %}
+<div class="modal fade" id="editParticipant{{ participant.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Participant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>{{ participant.user.get_full_name }}</strong></p>
+                <p>{{ participant.user.email }}</p>
+                <!-- Add form for editing participant role/status -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="removeParticipant{{ participant.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Remove Participant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove <strong>{{ participant.user.get_full_name }}</strong> from this meeting?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger">Remove Participant</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-item {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-item:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #6c757d;
+    }
+    
+    .form-check-input {
+        margin-top: 0.25rem;
+    }
+    
+    .form-check-label {
+        margin-left: 0.5rem;
+    }
+</style>
+{% endblock %}

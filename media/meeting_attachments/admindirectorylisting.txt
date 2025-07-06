@@ -1,0 +1,226 @@
+Microsoft Windows [Version 10.0.21996.1]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\LITF-2025\services\admin-ui-service\src>tree/f
+Folder PATH listing
+Volume serial number is FC6B-FA6F
+C:.
+│   App.tsx
+│   env.d.ts
+│   index.css
+│   main.tsx
+│   vite-env.d.ts
+│
+├───common
+│       TextStrings.tsx
+│
+├───components
+│   ├───cards
+│   │       StatCard.tsx
+│   │
+│   ├───common
+│   │       Breadcrumb.tsx
+│   │       ConfirmDialog.tsx
+│   │       ErrorDialog.tsx
+│   │       LoadingOverlay.tsx
+│   │       LoadingPage.tsx
+│   │       Modal.tsx
+│   │       RichTextEditor.tsx
+│   │       StatusBadge.tsx
+│   │       SuccessDialog.tsx
+│   │       UserTypeBadge.tsx
+│   │
+│   ├───datatable
+│   │       Datatable.tsx
+│   │
+│   ├───demo
+│   │       LITFGrapesJSDemo.tsx
+│   │
+│   ├───grapejs
+│   │       GrapesJSPageBuilder.tsx
+│   │
+│   ├───hero
+│   │       HeroSectionEditor.tsx
+│   │
+│   ├───layout
+│   │       Header.tsx
+│   │       Layout.tsx
+│   │       MobileNavigation.tsx
+│   │
+│   ├───layouts
+│   │       DashboardLayout.tsx
+│   │
+│   ├───media
+│   │       MediaEditor.tsx
+│   │       MediaManager copy.tsx
+│   │       MediaManager.tsx
+│   │       MediaPicker.tsx
+│   │       MediaUploader.tsx
+│   │
+│   ├───navigation
+│   │       Header.tsx
+│   │       Sidebar.tsx
+│   │
+│   ├───pagebuilder
+│   │       EnhancedPageBuilder.tsx
+│   │       grapesjs-custom.css
+│   │       GrapesJSPageBuilder.tsx
+│   │       PageBuilder.tsx
+│   │       SectionConfigPanel.tsx
+│   │       SectionLibrary.tsx
+│   │       UniversalGrapesJSEditor.tsx
+│   │
+│   ├───public
+│   │       HeroSection.tsx
+│   │
+│   ├───settings
+│   │       SiteSettingsManager.tsx
+│   │
+│   └───ui
+│           button.tsx
+│           card.tsx
+│           checkbox.tsx
+│           input.tsx
+│           label.tsx
+│           textarea.tsx
+│
+├───config
+│       env.ts
+│
+├───context
+│       UserContext.tsx
+│
+├───controllers
+│       AuthController.tsx
+│       ContentController.tsx
+│       FooterController.tsx
+│       HeroController.tsx
+│       HeroSectionController.tsx
+│       MediaController.tsx
+│       NavigationController.tsx
+│       PageController.tsx
+│       RoleController.tsx
+│       SectionTemplateController.tsx
+│       SiteSettingsController.tsx
+│       SiteSettingsControllerbkp.tsx
+│       UserController.tsx
+│
+├───lib
+│       utils.ts
+│
+├───pages
+│   │   Login.tsx
+│   │   Logout.tsx
+│   │
+│   └───Dashboard
+│       │   Home.tsx
+│       │
+│       ├───CMS
+│       │   │   PageBuilder.tsx
+│       │   │   SiteSettings.tsx
+│       │   │   SiteSettingsManager.tsx
+│       │   │
+│       │   ├───Helpdesk
+│       │   │       Documentation.tsx
+│       │   │       FAQManagement.tsx
+│       │   │       LiveChat copy.tsx
+│       │   │       LiveChat.tsx
+│       │   │       Surveys.tsx
+│       │   │       Tickets.tsx
+│       │   │
+│       │   ├───layout
+│       │   │       MobileNavigation.tsx
+│       │   │
+│       │   └───public
+│       │           HeroSection.tsx
+│       │
+│       ├───ContentSections
+│       │       ContentSectionEditor.tsx
+│       │       ContentSections.tsx
+│       │
+│       ├───Footer
+│       │       Footer.tsx
+│       │       FooterSectionEditor.tsx
+│       │       FooterSettingsPanel.tsx
+│       │
+│       ├───HeroSections
+│       │       HeroSections.tsx
+│       │
+│       ├───Media
+│       │       Media.tsx
+│       │
+│       ├───Navigation
+│       │       Navigation.tsx
+│       │       NavigationMenuEditor.tsx
+│       │
+│       ├───pages
+│       │       CreatePageWithBuilder.tsx
+│       │       PageEditor.tsx
+│       │       Pages.tsx
+│       │
+│       ├───Permissions
+│       │       Permissions.tsx
+│       │
+│       ├───Roles
+│       │       CreateRole.tsx
+│       │       EditRole.tsx
+│       │       Roles.tsx
+│       │
+│       ├───SiteSettings
+│       │       SiteSettings.tsx
+│       │
+│       └───Users
+│               CreateUser.tsx
+│               EditUser.tsx
+│               Users.tsx
+│               ViewUser.tsx
+│
+├───repository
+│       AuthRepository.tsx
+│       ContentRepository.tsx
+│       FooterRepository.tsx
+│       HeroRepository.tsx
+│       HeroSectionRepository.ts
+│       MediaRepository.tsx
+│       MediaRepositorycopy.tsx
+│       NavigationRepository.tsx
+│       PageRepository.tsx
+│       RoleRepository.tsx
+│       SectionTemplateRepository.tsx
+│       SiteSettingsRepository.tsx
+│       UserRepository.tsx
+│
+├───routes
+│       index.tsx
+│
+├───services
+│   │   api.ts
+│   │   AuthService.tsx
+│   │   faqAI.ts
+│   │   geoLocation.ts
+│   │   heroSectionService.ts
+│   │   MediaService.ts
+│   │
+│   └───services
+│           api copy.ts
+│           api.ts
+│           apiold.ts
+│           geoLocation.ts
+│
+├───styles
+│       enhanced-grapesjs.css
+│
+└───types
+        grapesjs-plugins.d.ts
+        hero.type.ts
+        HeroSection.types.ts
+        media.type.ts
+        missing-modules.d.ts
+        pageBuilder.types.ts
+        response.type.ts
+        role.type.ts
+        sitesettings.type.ts
+        user.type.ts
+
+
+C:\LITF-2025\services\admin-ui-service\src>

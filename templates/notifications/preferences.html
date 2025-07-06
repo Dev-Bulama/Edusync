@@ -1,0 +1,365 @@
+<!-- File Path: meeting_app/templates/notifications/preferences.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notification Preferences - Meeting App{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.form-check-input:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: none;
+}
+
+.form-text {
+    font-size: 0.875em;
+    color: #6c757d;
+}
+
+.reminder-options .form-check {
+    padding-left: 2rem;
+}
+
+.notification-channel {
+    transition: all 0.3s ease;
+}
+
+.notification-channel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-bell me-2"></i>Notification Preferences
+                        </h4>
+                        <a href="{% url 'notifications:list' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Notifications
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Notification Channels -->
+                        <div class="row mb-5">
+                            <div class="col-12">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-broadcast-tower me-2"></i>Notification Channels
+                                </h5>
+                                <p class="text-muted mb-4">Choose how you want to receive notifications</p>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card border-primary mb-3 notification-channel">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-envelope text-primary fa-2x me-3"></i>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">Email Notifications</h6>
+                                                <small class="text-muted">Receive notifications via email</small>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                {{ form.email_enabled }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card border-success mb-3 notification-channel">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-sms text-success fa-2x me-3"></i>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">SMS Notifications</h6>
+                                                <small class="text-muted">Receive notifications via SMS</small>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                {{ form.sms_enabled }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card border-warning mb-3 notification-channel">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-bell text-warning fa-2x me-3"></i>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">Push Notifications</h6>
+                                                <small class="text-muted">Receive browser push notifications</small>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                {{ form.push_enabled }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card border-info mb-3 notification-channel">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-desktop text-info fa-2x me-3"></i>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">In-App Notifications</h6>
+                                                <small class="text-muted">See notifications within the app</small>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                {{ form.in_app_enabled }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Meeting Reminders -->
+                        <div class="row mb-5">
+                            <div class="col-12">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-calendar-alt me-2"></i>Meeting Reminders
+                                </h5>
+                                <p class="text-muted mb-4">Configure when and how you receive meeting reminders</p>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.meeting_reminder_timing.id_for_label }}" class="form-label">
+                                        <i class="fas fa-clock me-1"></i>Default reminder timing
+                                    </label>
+                                    {{ form.meeting_reminder_timing }}
+                                    <div class="form-text">How far in advance to send meeting reminders</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="reminder-options">
+                                    <div class="form-check mb-2">
+                                        {{ form.meeting_created_notifications }}
+                                        <label class="form-check-label" for="{{ form.meeting_created_notifications.id_for_label }}">
+                                            <i class="fas fa-calendar-plus me-1"></i>New meeting notifications
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        {{ form.meeting_updated_notifications }}
+                                        <label class="form-check-label" for="{{ form.meeting_updated_notifications.id_for_label }}">
+                                            <i class="fas fa-calendar-edit me-1"></i>Meeting update notifications
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        {{ form.meeting_cancelled_notifications }}
+                                        <label class="form-check-label" for="{{ form.meeting_cancelled_notifications.id_for_label }}">
+                                            <i class="fas fa-calendar-times me-1"></i>Meeting cancellation notifications
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Invitation Notifications -->
+                        <div class="row mb-5">
+                            <div class="col-12">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-envelope-open me-2"></i>Invitation Notifications
+                                </h5>
+                                <p class="text-muted mb-4">Manage invitation-related notifications</p>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    {{ form.invitation_notifications }}
+                                    <label class="form-check-label" for="{{ form.invitation_notifications.id_for_label }}">
+                                        <i class="fas fa-paper-plane me-1"></i>Meeting invitation notifications
+                                    </label>
+                                    <div class="form-text">Get notified when you're invited to meetings</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    {{ form.invitation_response_notifications }}
+                                    <label class="form-check-label" for="{{ form.invitation_response_notifications.id_for_label }}">
+                                        <i class="fas fa-reply me-1"></i>Invitation response notifications
+                                    </label>
+                                    <div class="form-text">Get notified when others respond to your invitations</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Items -->
+                        <div class="row mb-5">
+                            <div class="col-12">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-tasks me-2"></i>Action Items
+                                </h5>
+                                <p class="text-muted mb-4">Configure action item notifications</p>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    {{ form.action_item_notifications }}
+                                    <label class="form-check-label" for="{{ form.action_item_notifications.id_for_label }}">
+                                        <i class="fas fa-clipboard-list me-1"></i>Action item assignments
+                                    </label>
+                                    <div class="form-text">Get notified when action items are assigned to you</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    {{ form.action_item_due_notifications }}
+                                    <label class="form-check-label" for="{{ form.action_item_due_notifications.id_for_label }}">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Action item due dates
+                                    </label>
+                                    <div class="form-text">Get reminded when action items are due</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Features -->
+                        <div class="row mb-5">
+                            <div class="col-12">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-brain me-2"></i>AI-Powered Features
+                                </h5>
+                                <p class="text-muted mb-4">Configure AI-enhanced notification features</p>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    {{ form.ai_insights_notifications }}
+                                    <label class="form-check-label" for="{{ form.ai_insights_notifications.id_for_label }}">
+                                        <i class="fas fa-lightbulb me-1"></i>AI insights and recommendations
+                                    </label>
+                                    <div class="form-text">Receive AI-generated insights about your meetings</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    {{ form.smart_suggestions_notifications }}
+                                    <label class="form-check-label" for="{{ form.smart_suggestions_notifications.id_for_label }}">
+                                        <i class="fas fa-magic me-1"></i>Smart scheduling suggestions
+                                    </label>
+                                    <div class="form-text">Get AI-powered suggestions for optimal meeting times</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Save Settings -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <button type="reset" class="btn btn-outline-secondary">
+                                        <i class="fas fa-undo me-2"></i>Reset to Default
+                                    </button>
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save me-2"></i>Save Preferences
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Notification Modal -->
+<div class="modal fade" id="testNotificationModal" tabindex="-1" aria-labelledby="testNotificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testNotificationModalLabel">Test Notification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Would you like to send a test notification to verify your settings?</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This will send a test notification through your enabled channels.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="sendTestNotification()">Send Test</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sendTestNotification() {
+    fetch("{% url 'notifications:admin_test_notification' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            'test_type': 'preference_test'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Test notification sent successfully!');
+        } else {
+            alert('Error sending test notification: ' + data.error);
+        }
+        document.getElementById('testNotificationModal').querySelector('.btn-close').click();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error sending test notification');
+    });
+}
+
+// Add test notification button to form
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const testButton = document.createElement('button');
+    testButton.type = 'button';
+    testButton.className = 'btn btn-outline-info btn-sm me-2';
+    testButton.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Test Notification';
+    testButton.setAttribute('data-bs-toggle', 'modal');
+    testButton.setAttribute('data-bs-target', '#testNotificationModal');
+    
+    const saveButton = form.querySelector('button[type="submit"]');
+    saveButton.parentNode.insertBefore(testButton, saveButton);
+});
+</script>
+{% endblock %}

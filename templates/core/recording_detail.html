@@ -1,0 +1,546 @@
+<!-- File Path: meeting_app/templates/core/recording_detail.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ recording.title }} - Recording{% endblock %}
+
+{% block extra_css %}
+<style>
+.recording-player {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 30px;
+    color: white;
+    margin-bottom: 30px;
+}
+
+.audio-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.play-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.play-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.progress-container {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    background: white;
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.1s ease;
+}
+
+.time-display {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.speed-control {
+    display: flex;
+    gap: 5px;
+}
+
+.speed-btn {
+    padding: 5px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.speed-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.recording-info {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.bookmark-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.bookmark-item {
+    border-left: 4px solid #667eea;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #f8f9fa;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.bookmark-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.bookmark-time {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.transcript-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.transcript-content {
+    max-height: 400px;
+    overflow-y: auto;
+    line-height: 1.6;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.waveform-container {
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    margin: 15px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.waveform {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 10px;
+}
+
+.waveform-bar {
+    width: 3px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.waveform-bar:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.playback-position {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background: #fff;
+    transition: left 0.1s ease;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-play-circle me-2"></i>{{ recording.title }}
+                </h2>
+           <div class="d-flex gap-2">
+    <a href="{% url 'core:recording_list' %}" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Recordings
+    </a>
+    <a href="{% url 'core:download_recording' recording.id %}" class="btn btn-success">
+        <i class="fas fa-download me-2"></i>Download
+    </a>
+    {% if recording.status == 'completed' %}
+        <a href="{% url 'core:recording_transcription' recording.id %}" class="btn btn-info">
+            <i class="fas fa-file-alt me-2"></i>Transcription
+        </a>
+    {% endif %}
+</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Player -->
+    <div class="row">
+        <div class="col-12">
+            <div class="recording-player">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4>{{ recording.title }}</h4>
+                        <p class="mb-0">{{ recording.description|default:"No description available" }}</p>
+                        
+                        <!-- Waveform Visualization -->
+                        <div class="waveform-container">
+                            <div class="waveform" id="waveform"></div>
+                            <div class="playback-position" id="playbackPosition"></div>
+                        </div>
+                        
+                        <!-- Audio Controls -->
+                        <div class="audio-controls">
+                            <button class="play-button" id="playButton" onclick="togglePlayback()">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            
+                            <div class="progress-container" onclick="seekTo(event)">
+                                <div class="progress-bar" id="progressBar"></div>
+                            </div>
+                            
+                            <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+                            
+                            <div class="speed-control">
+                                <button class="speed-btn" onclick="setSpeed(0.5)">0.5x</button>
+                                <button class="speed-btn active" onclick="setSpeed(1.0)">1x</button>
+                                <button class="speed-btn" onclick="setSpeed(1.25)">1.25x</button>
+                                <button class="speed-btn" onclick="setSpeed(1.5)">1.5x</button>
+                                <button class="speed-btn" onclick="setSpeed(2.0)">2x</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden Audio Element -->
+                        <audio id="audioPlayer" preload="metadata">
+                            <source src="{{ recording.audio_file.url }}" type="audio/webm">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="recording-stats">
+                            <h6>Recording Details</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Duration</small>
+                                    <div>{{ recording.get_duration_display }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Size</small>
+                                    <div>{{ recording.get_file_size_display }}</div>
+                                </div>
+                                <div class="col-6 mt-2">
+                                    <small class="text-muted">Quality</small>
+                                    <div>{{ recording.get_audio_quality_display }}</div>
+                                </div>
+                                <div class="col-6 mt-2">
+                                    <small class="text-muted">Plays</small>
+                                    <div>{{ recording.play_count }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recording Information -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="recording-info">
+                <h5><i class="fas fa-info-circle me-2"></i>Meeting Information</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>{{ recording.meeting.title }}</h6>
+                        <p class="text-muted">{{ recording.meeting.description|truncatewords:20 }}</p>
+                        <small class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>{{ recording.meeting.start_datetime|date:"M j, Y" }}
+                            <i class="fas fa-clock ms-2 me-1"></i>{{ recording.meeting.start_datetime|time:"H:i" }}
+                        </small>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Recorded by</h6>
+                        <p>{{ recording.recorded_by.get_full_name }}</p>
+                        <small class="text-muted">
+                            <i class="fas fa-microphone me-1"></i>{{ recording.created_at|date:"M j, Y H:i" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Add Bookmark Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bookmark me-2"></i>Add Bookmark</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" id="bookmarkTitle" placeholder="Bookmark title">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="bookmarkDescription" rows="2" placeholder="Optional description"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100" onclick="addBookmark()">
+                        <i class="fas fa-plus me-1"></i>Add Bookmark
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Bookmarks -->
+{% if bookmarks %}
+<div class="row">
+    <div class="col-12">
+        <div class="bookmark-section">
+            <h5><i class="fas fa-bookmark me-2"></i>Bookmarks</h5>
+            {% for bookmark in bookmarks %}
+            <div class="bookmark-item" data-timestamp="{{ bookmark.timestamp.total_seconds|floatformat:2 }}" onclick="seekToBookmark(this)">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">{{ bookmark.title }}</h6>
+                        {% if bookmark.description %}
+                        <p class="mb-2 text-muted">{{ bookmark.description }}</p>
+                        {% endif %}
+                    </div>
+                    <span class="bookmark-time">{{ bookmark.timestamp }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+    <!-- Transcript -->
+    {% if transcript %}
+    <div class="row">
+        <div class="col-12">
+            <div class="transcript-section">
+                <h5><i class="fas fa-file-alt me-2"></i>Transcript</h5>
+                <div class="transcript-content">
+                    {{ transcript.content|linebreaks }}
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-brain me-1"></i>AI Generated Transcript
+                        <i class="fas fa-chart-line ms-2 me-1"></i>Confidence: {{ transcript.confidence_score|floatformat:1 }}%
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let audioPlayer = document.getElementById('audioPlayer');
+let playButton = document.getElementById('playButton');
+let progressBar = document.getElementById('progressBar');
+let timeDisplay = document.getElementById('timeDisplay');
+let playbackPosition = document.getElementById('playbackPosition');
+let isPlaying = false;
+let currentSpeed = 1.0;
+
+// Initialize waveform
+function initializeWaveform() {
+    const waveform = document.getElementById('waveform');
+    const bars = 150;
+    
+    for (let i = 0; i < bars; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'waveform-bar';
+        const height = Math.random() * 60 + 20;
+        bar.style.height = height + 'px';
+        bar.addEventListener('click', () => {
+            const position = (i / bars) * audioPlayer.duration;
+            audioPlayer.currentTime = position;
+        });
+        waveform.appendChild(bar);
+    }
+}
+
+// Audio event listeners
+audioPlayer.addEventListener('loadedmetadata', () => {
+    initializeWaveform();
+    updateTimeDisplay();
+});
+
+audioPlayer.addEventListener('timeupdate', () => {
+    updateProgress();
+    updateTimeDisplay();
+});
+
+audioPlayer.addEventListener('ended', () => {
+    isPlaying = false;
+    playButton.innerHTML = '<i class="fas fa-play"></i>';
+    progressBar.style.width = '0%';
+    playbackPosition.style.left = '0%';
+});
+
+function togglePlayback() {
+    if (isPlaying) {
+        audioPlayer.pause();
+        playButton.innerHTML = '<i class="fas fa-play"></i>';
+    } else {
+        audioPlayer.play();
+        playButton.innerHTML = '<i class="fas fa-pause"></i>';
+    }
+    isPlaying = !isPlaying;
+}
+
+function updateProgress() {
+    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+    progressBar.style.width = progress + '%';
+    playbackPosition.style.left = progress + '%';
+}
+
+function updateTimeDisplay() {
+    const current = formatTime(audioPlayer.currentTime);
+    const total = formatTime(audioPlayer.duration);
+    timeDisplay.textContent = `${current} / ${total}`;
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '00:00';
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+function seekTo(event) {
+    const progressContainer = event.currentTarget;
+    const clickPosition = (event.offsetX / progressContainer.offsetWidth);
+    audioPlayer.currentTime = clickPosition * audioPlayer.duration;
+}
+
+function setSpeed(speed) {
+    currentSpeed = speed;
+    audioPlayer.playbackRate = speed;
+    
+    // Update button states
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+function seekToBookmark(element) {
+    const timestamp = parseFloat(element.dataset.timestamp);
+    audioPlayer.currentTime = timestamp;
+    if (!isPlaying) {
+        togglePlaybook();
+    }
+}
+
+function addBookmark() {
+    const title = document.getElementById('bookmarkTitle').value;
+    const description = document.getElementById('bookmarkDescription').value;
+    const timestamp = audioPlayer.currentTime;
+    
+    if (!title) {
+        alert('Please enter a bookmark title');
+        return;
+    }
+    
+    fetch(`/recordings/{{ recording.id }}/bookmark/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            timestamp: timestamp
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Bookmark added successfully!');
+            document.getElementById('bookmarkTitle').value = '';
+            document.getElementById('bookmarkDescription').value = '';
+            location.reload();
+        } else {
+            alert('Error adding bookmark: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding bookmark');
+    });
+}
+
+// CSRF token helper
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    switch(e.key) {
+        case ' ':
+            e.preventDefault();
+            togglePlayback();
+            break;
+        case 'ArrowLeft':
+            e.preventDefault();
+            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+            break;
+        case 'ArrowRight':
+            e.preventDefault();
+            audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10);
+            break;
+    }
+});
+</script>
+{% endblock %}

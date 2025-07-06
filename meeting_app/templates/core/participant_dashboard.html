@@ -1,0 +1,336 @@
+<!-- File Path: meeting_app/templates/core/participant_dashboard.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Participant Dashboard - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 bg-info text-white min-vh-100">
+            <div class="p-3">
+                <h5 class="mb-4">
+                    <i class="fas fa-user-friends me-2"></i>Participant Panel
+                </h5>
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#overview">
+                            <i class="fas fa-tachometer-alt me-2"></i>Overview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#meetings">
+                            <i class="fas fa-calendar-alt me-2"></i>My Meetings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#upcoming">
+                            <i class="fas fa-clock me-2"></i>Upcoming
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#history">
+                            <i class="fas fa-history me-2"></i>History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#profile">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            <div class="p-4">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0">Participant Dashboard</h1>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-success me-2">Available</span>
+                        <span class="text-muted">Welcome back, {{ user.first_name }}!</span>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Total Meetings</h6>
+                                        <h3 class="mb-0">{{ total_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-calendar-alt fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Upcoming</h6>
+                                        <h3 class="mb-0">{{ upcoming_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-clock fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Completed</h6>
+                                        <h3 class="mb-0">{{ completed_meetings }}</h3>
+                                    </div>
+                                    <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Hours Attended</h6>
+                                        <h3 class="mb-0">0</h3>
+                                    </div>
+                                    <i class="fas fa-hourglass-half fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Schedule -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-calendar-day me-2"></i>Today's Schedule
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+                                            <div class="bg-warning rounded-circle p-2 me-3">
+                                                <i class="fas fa-clock text-white"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <strong>Team Standup</strong>
+                                                <br>
+                                                <small class="text-muted">10:00 AM - 11:00 AM</small>
+                                                <br>
+                                                <span class="badge bg-warning">In 2 hours</span>
+                                            </div>
+                                            <button class="btn btn-sm btn-success">Join</button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+                                            <div class="bg-info rounded-circle p-2 me-3">
+                                                <i class="fas fa-users text-white"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <strong>Project Review</strong>
+                                                <br>
+                                                <small class="text-muted">2:00 PM - 3:00 PM</small>
+                                                <br>
+                                                <span class="badge bg-info">In 6 hours</span>
+                                            </div>
+                                            <button class="btn btn-sm btn-success">Join</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <small class="text-muted">No more meetings scheduled for today</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Meetings -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">My Meetings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Meeting Title</th>
+                                                <th>Organizer</th>
+                                                <th>Date & Time</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Placeholder data -->
+                                            <tr>
+                                                <td>
+                                                    <div>
+                                                        <strong>Team Standup</strong>
+                                                        <br>
+                                                        <small class="text-muted">Daily meeting</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="bg-primary rounded-circle text-white me-2 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                            <small>JD</small>
+                                                        </div>
+                                                        <div>
+                                                            <small>John Doe</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>Today, 10:00 AM</strong>
+                                                        <br>
+                                                        <small class="text-muted">1 hour</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-warning">Upcoming</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-success">
+                                                            <i class="fas fa-video"></i> Join
+                                                        </button>
+                                                        <button class="btn btn-outline-primary">
+                                                            <i class="fas fa-info-circle"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">
+                                                    <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                                                    <br>
+                                                    No meetings found. You'll see your meetings here once you're invited.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile & Settings -->
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary">
+                                        <i class="fas fa-calendar-day me-2"></i>View Schedule
+                                    </button>
+                                    <button class="btn btn-info">
+                                        <i class="fas fa-user-edit me-2"></i>Update Profile
+                                    </button>
+                                    <button class="btn btn-warning">
+                                        <i class="fas fa-bell me-2"></i>Notifications
+                                    </button>
+                                    <button class="btn btn-success">
+                                        <i class="fas fa-download me-2"></i>Download Reports
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profile Summary -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Profile Summary</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                {% if user.userprofile.profile_picture %}
+                                    <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="rounded-circle mb-3" width="80" height="80">
+                                {% else %}
+                                    <div class="bg-primary rounded-circle text-white mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                        <i class="fas fa-user fa-2x"></i>
+                                    </div>
+                                {% endif %}
+                                <h6 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h6>
+                                <small class="text-muted">{{ user.email }}</small>
+                                <br>
+                                <span class="badge bg-info mt-2">{{ user.userprofile.get_user_type_display }}</span>
+                                <div class="mt-3">
+                                    <a href="{% url 'accounts:profile' %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit me-1"></i>Edit Profile
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .min-vh-100 {
+        min-height: 100vh;
+    }
+    
+    .nav-link.active {
+        background-color: #0dcaf0 !important;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #6c757d;
+    }
+    
+    .opacity-75 {
+        opacity: 0.75;
+    }
+    
+    .meeting-card {
+        transition: transform 0.2s ease;
+    }
+    
+    .meeting-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}

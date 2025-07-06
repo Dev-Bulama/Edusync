@@ -1,0 +1,83 @@
+<!-- File Path: meeting_app/templates/accounts/register.html -->
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register - Meeting App{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 mt-5">
+                <div class="card-header bg-success text-white text-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </h3>
+                    <p class="mb-0 mt-2">Join Meeting App today!</p>
+                </div>
+                <div class="card-body p-4">
+                    {% crispy form %}
+                    
+                    <div class="text-center mt-3">
+                        <p class="text-muted">
+                            Already have an account? 
+                            <a href="{% url 'accounts:login' %}" class="text-success text-decoration-none">
+                                Login here
+                            </a>
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>User Types:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Admin:</strong> Full system access and management</li>
+                            <li><strong>Organizer:</strong> Can create and manage meetings</li>
+                            <li><strong>Participant:</strong> Can join and attend meetings</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        margin-top: 2rem;
+        border-radius: 15px;
+    }
+    
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #198754 0%, #20c997 100%) !important;
+    }
+    
+    .form-control:focus {
+        border-color: #198754;
+        box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+        border: none;
+        border-radius: 25px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(25, 135, 84, 0.4);
+    }
+    
+    .alert-info {
+        border-left: 4px solid #0dcaf0;
+        border-radius: 0 0.375rem 0.375rem 0;
+    }
+</style>
+{% endblock %}
