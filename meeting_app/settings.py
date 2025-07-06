@@ -16,7 +16,9 @@ SECRET_KEY = 'django-insecure-your-secret-key-here-change-in-production'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['edusync-mbn4.onrender.com',  # Your Render URL
+    'localhost',
+    '127.0.0.1']
 
 # Application definition
 # Application definition
@@ -104,7 +106,7 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -172,7 +174,7 @@ CHANNEL_LAYERS = {
 if 'RENDER' in os.environ:
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    ALLOWED_HOSTS = [os.environ.get('RENDER_EXTERNAL_HOSTNAME')]
+    ALLOWED_HOSTS = [os.environ.get('https://edusync-mbn4.onrender.com/')]
     
     # Database
     # import dj_database_url
