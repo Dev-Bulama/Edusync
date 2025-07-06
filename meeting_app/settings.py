@@ -169,7 +169,22 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+if 'RENDER' in os.environ:
+    DEBUG = False
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    ALLOWED_HOSTS = [os.environ.get('RENDER_EXTERNAL_HOSTNAME')]
+    
+    # Database
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+    }
+    
+    # Static files
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Add whitenoise middleware
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 # WebRTC Configuration
 WEBRTC_STUN_SERVERS = [
     'stun:stun.l.google.com:19302',
