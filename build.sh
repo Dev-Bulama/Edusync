@@ -1,47 +1,31 @@
 #!/usr/bin/env bash
-# exit on error
-set -o errexit
+# render_deploy.sh - Safe deployment script for Render
 
-echo "Installing dependencies..."
+set -o errexit  # exit on error
+
+echo "🚀 Starting Render deployment..."
+
+# Install dependencies
 pip install -r requirements.txt
 
-echo "Installing additional packages for WebSocket support..."
-pip install daphne
-
-echo "Collecting static files..."
-python manage.py collectstatic --no-input
-
-echo "Running migrations..."
+# Run migrations
 python manage.py migrate
 
-echo "Creating demo data..."
+# Collect static files
+python manage.py collectstatic --no-input
+
+# ONLY create demo data if database is empty
 python manage.py shell -c "
 from django.contrib.auth.models import User
 from accounts.models import UserProfile
 
-# Create admin user if not exists
-if not User.objects.filter(username='admin').exists():
-    admin = User.objects.create_superuser('admin', 'admin@edusync.com', 'admin123')
-    UserProfile.objects.create(user=admin, user_type='admin')
-    print('Admin user created: admin/admin123')
-
-# Create organizer user
-if not User.objects.filter(username='organizer').exists():
-    organizer = User.objects.create_user('organizer', 'organizer@edusync.com', 'organizer123')
-    organizer.first_name = 'John'
-    organizer.last_name = 'Organizer'
-    organizer.save()
-    UserProfile.objects.create(user=organizer, user_type='organizer')
-    print('Organizer user created: organizer/organizer123')
-
-# Create participant user
-if not User.objects.filter(username='participant').exists():
-    participant = User.objects.create_user('participant', 'participant@edusync.com', 'participant123')
-    participant.first_name = 'Jane'
-    participant.last_name = 'Participant'
-    participant.save()
-    UserProfile.objects.create(user=participant, user_type='participant')
-    print('Participant user created: participant/participant123')
+# Check if any users exist
+if User.objects.count() == 0:
+    print('📝 No users found, creating demo data...')
+    exec(open('setup_demo_data.py').read())
+else:
+    print('✅ Users already exist, skipping demo data creation')
+    print(f'📊 Found {User.objects.count()} users and {UserProfile.objects.count()} profiles')
 "
 
-echo "Build completed successfully!"
+echo "✅ Deployment complete!"
