@@ -297,50 +297,90 @@ class MeetingRoom {
     }
     
     connectWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/meeting/${this.meetingId}/`;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/meeting/${this.meetingId}/`;
+    
+    console.log('Connecting to WebSocket:', wsUrl);
+    this.socket = new WebSocket(wsUrl);
+    
+    let connectionAttempts = 0;
+    const maxAttempts = 3;
+    
+    this.socket.onopen = () => {
+        console.log('✅ WebSocket connected successfully');
+        this.showNotification('Connected to meeting', 'success');
+        connectionAttempts = 0;
         
-        console.log('Connecting to WebSocket:', wsUrl);
-        this.socket = new WebSocket(wsUrl);
+        // Join meeting
+        this.sendMessage({
+            type: 'join_meeting',
+            user_id: this.userId,
+            username: this.username
+        });
+    };
+    
+    this.socket.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            console.log('📨 Received message:', data.type, data);
+            this.handleMessage(data);
+        } catch (error) {
+            console.error('❌ Error parsing WebSocket message:', error);
+        }
+    };
+    
+    this.socket.onclose = (event) => {
+        console.log('❌ WebSocket disconnected:', event.code, event.reason);
         
-        this.socket.onopen = () => {
-            console.log('✅ WebSocket connected successfully');
-            this.showNotification('Connected to meeting', 'success');
+        if (event.code === 1006 || event.code === 1002) {
+            // Connection failed or WebSocket not supported
+            connectionAttempts++;
             
-            // Join meeting
-            this.sendMessage({
-                type: 'join_meeting',
-                user_id: this.userId,
-                username: this.username
-            });
-        };
-        
-        this.socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                console.log('📨 Received message:', data.type, data);
-                this.handleMessage(data);
-            } catch (error) {
-                console.error('❌ Error parsing WebSocket message:', error);
+            if (connectionAttempts <= maxAttempts) {
+                this.showNotification(`Connection attempt ${connectionAttempts}/${maxAttempts}...`, 'warning');
+                setTimeout(() => {
+                    console.log('🔄 Attempting to reconnect...');
+                    this.connectWebSocket();
+                }, 3000 * connectionAttempts);
+            } else {
+                // Fallback to basic mode
+                this.showNotification('Real-time features unavailable. Using basic mode.', 'warning');
+                this.enableBasicMode();
             }
-        };
-        
-        this.socket.onclose = (event) => {
-            console.log('❌ WebSocket disconnected:', event.code, event.reason);
+        } else {
             this.showNotification('Disconnected from meeting', 'error');
-            
-            // Attempt to reconnect after 3 seconds
-            setTimeout(() => {
-                console.log('🔄 Attempting to reconnect...');
-                this.connectWebSocket();
-            }, 3000);
-        };
-        
-        this.socket.onerror = (error) => {
-            console.error('❌ WebSocket error:', error);
-            this.showNotification('Connection error', 'error');
-        };
+        }
+    };
+    
+    this.socket.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        this.showNotification('Connection error - trying fallback', 'error');
+    };
+}
+
+enableBasicMode() {
+    console.log('🔧 Enabling basic mode without real-time features');
+    
+    // Show only local video
+    this.showNotification('Basic mode: Only your video is shown. Real-time features disabled.', 'info');
+    
+    // Disable real-time features
+    const chatBtn = this.toggleChatBtn;
+    const participantsBtn = this.toggleParticipantsBtn;
+    
+    if (chatBtn) {
+        chatBtn.disabled = true;
+        chatBtn.title = 'Chat unavailable in basic mode';
     }
+    
+    if (participantsBtn) {
+        participantsBtn.disabled = true;
+        participantsBtn.title = 'Participant list unavailable in basic mode';
+    }
+    
+    // Still allow audio/video controls for local stream
+    this.updateParticipantCount();
+}
     
     async setupLocalMedia() {
         try {

@@ -39,3 +39,6 @@ typing-inspection==0.4.1
 typing_extensions==4.14.1
 tzdata==2025.2
 whitenoise==6.9.0
+daphne==4.0.0
+channels==4.0.0
+channels-redis==4.1.0

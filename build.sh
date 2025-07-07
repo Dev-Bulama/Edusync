@@ -5,6 +5,9 @@ set -o errexit
 echo "Installing dependencies..."
 pip install -r requirements.txt
 
+echo "Installing additional packages for WebSocket support..."
+pip install daphne
+
 echo "Collecting static files..."
 python manage.py collectstatic --no-input
 
