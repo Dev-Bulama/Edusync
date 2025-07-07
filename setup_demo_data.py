@@ -32,11 +32,24 @@ def create_users():
     if created:
         admin_user.set_password('admin123')
         admin_user.save()
-        admin_user.userprofile.user_type = 'admin'
-        admin_user.userprofile.organization = 'Meeting App Corp'
-        admin_user.userprofile.phone_number = '+1234567890'
-        admin_user.userprofile.bio = 'System Administrator with full access to all features.'
-        admin_user.userprofile.save()
+    
+    # Get or create the profile (safe way)
+    admin_profile, profile_created = UserProfile.objects.get_or_create(
+        user=admin_user,
+        defaults={
+            'user_type': 'admin',
+            'organization': 'Meeting App Corp',
+            'phone_number': '+1234567890',
+            'bio': 'System Administrator with full access to all features.'
+        }
+    )
+    if not profile_created:
+        # Update existing profile
+        admin_profile.user_type = 'admin'
+        admin_profile.organization = 'Meeting App Corp'
+        admin_profile.phone_number = '+1234567890'
+        admin_profile.bio = 'System Administrator with full access to all features.'
+        admin_profile.save()
     
     # Create Organizer User
     organizer_user, created = User.objects.get_or_create(
@@ -50,11 +63,24 @@ def create_users():
     if created:
         organizer_user.set_password('organizer123')
         organizer_user.save()
-        organizer_user.userprofile.user_type = 'organizer'
-        organizer_user.userprofile.organization = 'Tech Solutions Inc'
-        organizer_user.userprofile.phone_number = '+1234567891'
-        organizer_user.userprofile.bio = 'Meeting organizer responsible for scheduling and managing team meetings.'
-        organizer_user.userprofile.save()
+    
+    # Get or create the profile (safe way)
+    organizer_profile, profile_created = UserProfile.objects.get_or_create(
+        user=organizer_user,
+        defaults={
+            'user_type': 'organizer',
+            'organization': 'Tech Solutions Inc',
+            'phone_number': '+1234567891',
+            'bio': 'Meeting organizer responsible for scheduling and managing team meetings.'
+        }
+    )
+    if not profile_created:
+        # Update existing profile
+        organizer_profile.user_type = 'organizer'
+        organizer_profile.organization = 'Tech Solutions Inc'
+        organizer_profile.phone_number = '+1234567891'
+        organizer_profile.bio = 'Meeting organizer responsible for scheduling and managing team meetings.'
+        organizer_profile.save()
     
     # Create Participant Users
     participants_data = [
@@ -75,11 +101,24 @@ def create_users():
         if created:
             user.set_password('participant123')
             user.save()
-            user.userprofile.user_type = 'participant'
-            user.userprofile.organization = org
-            user.userprofile.phone_number = f'+123456789{username[-1]}'
-            user.userprofile.bio = f'{bio} who participates in meetings.'
-            user.userprofile.save()
+        
+        # Get or create the profile (safe way)
+        user_profile, profile_created = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={
+                'user_type': 'participant',
+                'organization': org,
+                'phone_number': f'+123456789{username[-1]}',
+                'bio': f'{bio} who participates in meetings.'
+            }
+        )
+        if not profile_created:
+            # Update existing profile
+            user_profile.user_type = 'participant'
+            user_profile.organization = org
+            user_profile.phone_number = f'+123456789{username[-1]}'
+            user_profile.bio = f'{bio} who participates in meetings.'
+            user_profile.save()
     
     print("✅ Users created successfully!")
 
