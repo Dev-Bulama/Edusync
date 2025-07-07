@@ -175,27 +175,27 @@ NOTIFICATION_SETTINGS = {
 }
 # Channels Configuration for WebRTC
 # Channels Configuration for WebRTC
-#ASGI_APPLICATION = 'meeting_app.asgi.application'
+ASGI_APPLICATION = 'meeting_app.asgi.application'
 
 # Updated Channel Layers for Production
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels.layers.InMemoryChannelLayer',
-#         'CONFIG': {
-#             "capacity": 1500,
-#             "expiry": 10,
-#         },
-#     },
-# }
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        'CONFIG': {
+            "capacity": 1500,
+            "expiry": 10,
+        },
+    },
+}
 # Production settings for Render
-# Production settings for Render
-
 if 'RENDER' in os.environ:
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    ALLOWED_HOSTS = ['edusync-mbn4.onrender.com', 'localhost', '127.0.0.1']
     
-    # Databases - keep using SQLite for simplicity
+    # Fix ALLOWED_HOSTS - use hostname only, not full URL
+    ALLOWED_HOSTS = ['edusync-mbn4.onrender.com']
+    
+    # Database configuration for production
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -203,29 +203,32 @@ if 'RENDER' in os.environ:
         }
     }
     
-    # Static files
+    # Static files configuration
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
     # Security settings
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-
-# Ensure WhiteNoise is in middleware
-if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-
-# ASGI Configuration
-ASGI_APPLICATION = 'meeting_app.asgi.application'
-
-# Channel Layers - Simplified for production
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
-}
+    
+else:
+    # Development settings
+    DEBUG = True
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    
+    # Development database
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+ 
+    
+    # Static files
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Add whitenoise middleware
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
