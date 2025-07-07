@@ -51,11 +51,7 @@ def logout_view(request):
 
 @login_required
 def dashboard_view(request):
-    try:
-        user_profile = request.user.profile
-    except UserProfile.DoesNotExist:
-        # Handle case where profile doesn't exist
-        user_profile = UserProfile.objects.create(user=request.user)
+    user_profile = request.user.userprofile
     
     # Redirect to specific dashboard based on user type
     if user_profile.user_type == 'admin':

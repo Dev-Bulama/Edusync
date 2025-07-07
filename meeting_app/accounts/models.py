@@ -35,12 +35,9 @@ class UserProfile(models.Model):
 def create_user_profile(sender, instance, created, **kwargs):
     """Create a UserProfile when a User is created"""
     if created:
-        UserProfile.objects.get_or_create(user=instance)
+        UserProfile.objects.create(user=instance)
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     """Save the UserProfile when User is saved"""
-    # Use get_or_create to handle cases where profile doesn't exist
-    profile, created = UserProfile.objects.get_or_create(user=instance)
-    if not created:  # Only save if it already existed
-        profile.save()
+    instance.userprofile.save()
