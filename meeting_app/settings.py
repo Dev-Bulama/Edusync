@@ -70,13 +70,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'meeting_app.wsgi.application'
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# # Database
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -171,16 +171,45 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+# Production settings for Render
 if 'RENDER' in os.environ:
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    ALLOWED_HOSTS = [os.environ.get('https://edusync-mbn4.onrender.com/')]
     
-    # Database
-    # import dj_database_url
-    # DATABASES = {
-    #     'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
-    # }
+    # Fix ALLOWED_HOSTS - use hostname only, not full URL
+    ALLOWED_HOSTS = ['edusync-mbn4.onrender.com']
+    
+    # Database configuration for production
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+    
+    # Static files configuration
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # Security settings
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+else:
+    # Development settings
+    DEBUG = True
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    
+    # Development database
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+ 
     
     # Static files
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
