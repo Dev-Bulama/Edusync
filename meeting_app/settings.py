@@ -164,11 +164,17 @@ NOTIFICATION_SETTINGS = {
     'SMART_REMINDERS_ENABLED': True,
 }
 # Channels Configuration for WebRTC
+# Channels Configuration for WebRTC
 ASGI_APPLICATION = 'meeting_app.asgi.application'
 
+# Updated Channel Layers for Production
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        'CONFIG': {
+            "capacity": 1500,
+            "expiry": 10,
+        },
     },
 }
 # Production settings for Render

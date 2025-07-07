@@ -183,44 +183,58 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-// Complete WebRTC Implementation
+// Simplified Working WebRTC Implementation
 class MeetingRoom {
     constructor() {
-        // Get data from hidden script tag
         const data = JSON.parse(document.getElementById('meeting-data').textContent);
         this.meetingId = data.meetingId;
-        this.userId = data.userId;
+        this.userId = data.userId.toString();
         this.username = data.username;
         this.isOrganizer = data.isOrganizer;
         
-        // WebRTC Configuration
+        // Enhanced STUN/TURN configuration for production
         this.pcConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
-            ]
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                // Public TURN servers for better connectivity
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ],
+            iceCandidatePoolSize: 10
         };
         
-        // State management
         this.localStream = null;
         this.socket = null;
-        this.peerConnections = new Map(); // userId -> RTCPeerConnection
-        this.remoteStreams = new Map(); // userId -> MediaStream
-        this.participants = new Map(); // userId -> participant info
+        this.participants = new Map();
+        this.peerConnections = new Map();
+        this.pendingICECandidates = new Map();
         
         this.isAudioMuted = false;
         this.isVideoOff = false;
-        this.isScreenSharing = false;
         
-        // Initialize
         this.initializeElements();
         this.setupEventListeners();
-        this.connectWebSocket();
-        this.setupLocalMedia();
         this.startTimer();
         
-        console.log('Meeting room initialized for:', this.username);
+        // Initialize with delay to ensure DOM is ready
+        setTimeout(() => {
+            this.connectWebSocket();
+            this.setupLocalMedia();
+        }, 1000);
+        
+        console.log('Meeting room initialized for user:', this.userId, this.username);
     }
     
     initializeElements() {
@@ -234,25 +248,19 @@ class MeetingRoom {
         this.participantsList = document.getElementById('participants-list');
         this.participantCount = document.getElementById('participant-count');
         
-        // Control buttons
         this.toggleAudioBtn = document.getElementById('toggle-audio');
         this.toggleVideoBtn = document.getElementById('toggle-video');
-        this.toggleScreenShareBtn = document.getElementById('toggle-screen-share');
         this.toggleChatBtn = document.getElementById('toggle-chat');
         this.toggleParticipantsBtn = document.getElementById('toggle-participants');
         this.leaveMeetingBtn = document.getElementById('leave-meeting');
     }
     
     setupEventListeners() {
-        // Control buttons
         if (this.toggleAudioBtn) {
             this.toggleAudioBtn.addEventListener('click', () => this.toggleAudio());
         }
         if (this.toggleVideoBtn) {
             this.toggleVideoBtn.addEventListener('click', () => this.toggleVideo());
-        }
-        if (this.toggleScreenShareBtn) {
-            this.toggleScreenShareBtn.addEventListener('click', () => this.toggleScreenShare());
         }
         if (this.toggleChatBtn) {
             this.toggleChatBtn.addEventListener('click', () => this.toggleChat());
@@ -264,7 +272,6 @@ class MeetingRoom {
             this.leaveMeetingBtn.addEventListener('click', () => this.leaveMeeting());
         }
         
-        // Chat
         if (this.chatInput) {
             this.chatInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') this.sendChatMessage();
@@ -276,7 +283,6 @@ class MeetingRoom {
             sendChatBtn.addEventListener('click', () => this.sendChatMessage());
         }
         
-        // Panel close buttons
         const closeChatBtn = document.getElementById('close-chat');
         if (closeChatBtn) {
             closeChatBtn.addEventListener('click', () => this.toggleChat());
@@ -287,7 +293,6 @@ class MeetingRoom {
             closeParticipantsBtn.addEventListener('click', () => this.toggleParticipants());
         }
         
-        // Window events
         window.addEventListener('beforeunload', () => this.cleanup());
     }
     
@@ -295,61 +300,93 @@ class MeetingRoom {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/meeting/${this.meetingId}/`;
         
+        console.log('Connecting to WebSocket:', wsUrl);
         this.socket = new WebSocket(wsUrl);
         
         this.socket.onopen = () => {
-            console.log('WebSocket connected');
+            console.log('✅ WebSocket connected successfully');
             this.showNotification('Connected to meeting', 'success');
             
-            // Join meeting and request participants
-            this.sendWebSocketMessage({
+            // Join meeting
+            this.sendMessage({
                 type: 'join_meeting',
                 user_id: this.userId,
                 username: this.username
             });
-            
-            setTimeout(() => {
-                this.sendWebSocketMessage({
-                    type: 'request_participants'
-                });
-            }, 1000);
         };
         
         this.socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            this.handleWebSocketMessage(data);
+            try {
+                const data = JSON.parse(event.data);
+                console.log('📨 Received message:', data.type, data);
+                this.handleMessage(data);
+            } catch (error) {
+                console.error('❌ Error parsing WebSocket message:', error);
+            }
         };
         
-        this.socket.onclose = () => {
-            console.log('WebSocket disconnected');
+        this.socket.onclose = (event) => {
+            console.log('❌ WebSocket disconnected:', event.code, event.reason);
             this.showNotification('Disconnected from meeting', 'error');
+            
+            // Attempt to reconnect after 3 seconds
+            setTimeout(() => {
+                console.log('🔄 Attempting to reconnect...');
+                this.connectWebSocket();
+            }, 3000);
         };
         
         this.socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
+            console.error('❌ WebSocket error:', error);
             this.showNotification('Connection error', 'error');
         };
     }
     
     async setupLocalMedia() {
         try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480 },
-                audio: true
-            });
+            console.log('🎥 Setting up local media...');
+            
+            const constraints = {
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    frameRate: { ideal: 15 }
+                },
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            };
+            
+            this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
             
             if (this.localVideo) {
                 this.localVideo.srcObject = this.localStream;
+                this.localVideo.muted = true; // Prevent feedback
             }
             
+            console.log('✅ Local media setup complete');
             this.showNotification('Camera and microphone ready', 'success');
+            
+            // Update participant count
+            this.updateParticipantCount();
+            
         } catch (error) {
-            console.error('Error accessing media devices:', error);
-            this.showNotification('Camera/microphone access denied', 'error');
+            console.error('❌ Error accessing media devices:', error);
+            this.showNotification('Camera/microphone access required', 'error');
+            
+            // Create a dummy stream with audio only
+            try {
+                this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('✅ Audio-only mode enabled');
+            } catch (audioError) {
+                console.error('❌ No media access at all:', audioError);
+            }
         }
     }
     
-    handleWebSocketMessage(data) {
+    handleMessage(data) {
         switch (data.type) {
             case 'user_joined':
                 this.handleUserJoined(data);
@@ -357,181 +394,192 @@ class MeetingRoom {
             case 'user_left':
                 this.handleUserLeft(data);
                 break;
-            case 'participant_info':
-                this.handleParticipantInfo(data);
-                break;
             case 'chat_message':
                 this.displayChatMessage(data);
                 break;
             case 'webrtc_offer':
-                this.handleWebRTCOffer(data);
+                this.handleOffer(data);
                 break;
             case 'webrtc_answer':
-                this.handleWebRTCAnswer(data);
+                this.handleAnswer(data);
                 break;
             case 'ice_candidate':
                 this.handleICECandidate(data);
                 break;
             case 'audio_toggled':
-                this.handleRemoteAudioToggle(data);
-                break;
             case 'video_toggled':
-                this.handleRemoteVideoToggle(data);
+                this.handleMediaToggle(data);
                 break;
         }
     }
     
-    handleUserJoined(data) {
-        if (data.user_id !== this.userId.toString()) {
-            console.log('User joined:', data.username);
-            this.addParticipant(data);
-            this.createPeerConnection(data.user_id);
-            this.showNotification(`${data.username} joined the meeting`, 'info');
-            this.updateParticipantCount();
+    async handleUserJoined(data) {
+        if (data.user_id === this.userId) return;
+        
+        console.log('👤 User joined:', data.username, data.user_id);
+        this.addParticipant(data);
+        
+        // Create peer connection and send offer
+        if (this.localStream) {
+            setTimeout(() => {
+                this.createPeerConnection(data.user_id, true);
+            }, 1000);
         }
+        
+        this.showNotification(`${data.username} joined`, 'info');
     }
     
     handleUserLeft(data) {
-        console.log('User left:', data.username);
+        console.log('👤 User left:', data.username, data.user_id);
         this.removeParticipant(data.user_id);
-        this.closePeerConnection(data.user_id);
-        this.showNotification(`${data.username} left the meeting`, 'info');
-        this.updateParticipantCount();
+        this.showNotification(`${data.username} left`, 'info');
     }
     
-    handleParticipantInfo(data) {
-        if (data.user_id !== this.userId.toString()) {
-            this.addParticipant(data);
-            this.createPeerConnection(data.user_id);
-        }
-    }
-    
-    async createPeerConnection(userId) {
+    async createPeerConnection(remoteUserId, shouldCreateOffer = false) {
         try {
+            console.log(`🔗 Creating peer connection with ${remoteUserId}, shouldCreateOffer: ${shouldCreateOffer}`);
+            
             const pc = new RTCPeerConnection(this.pcConfig);
-            this.peerConnections.set(userId, pc);
+            this.peerConnections.set(remoteUserId, pc);
             
             // Add local stream tracks
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => {
+                    console.log(`➕ Adding track:`, track.kind);
                     pc.addTrack(track, this.localStream);
                 });
             }
             
-            // Handle remote stream
+            // Handle incoming remote stream
             pc.ontrack = (event) => {
-                console.log('Received remote stream from:', userId);
-                const [remoteStream] = event.streams;
-                this.remoteStreams.set(userId, remoteStream);
-                this.displayRemoteVideo(userId, remoteStream);
+                console.log(`📺 Received remote stream from ${remoteUserId}:`, event.streams);
+                const remoteStream = event.streams[0];
+                if (remoteStream) {
+                    this.displayRemoteVideo(remoteUserId, remoteStream);
+                }
             };
             
             // Handle ICE candidates
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    this.sendWebSocketMessage({
+                    console.log(`🧊 Sending ICE candidate to ${remoteUserId}`);
+                    this.sendMessage({
                         type: 'webrtc_ice_candidate',
                         candidate: event.candidate,
-                        target_user: userId
+                        target_user: remoteUserId
                     });
                 }
             };
             
-            // Create and send offer
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
+            // Handle connection state changes
+            pc.onconnectionstatechange = () => {
+                console.log(`🔗 Connection state with ${remoteUserId}:`, pc.connectionState);
+                if (pc.connectionState === 'connected') {
+                    this.showNotification(`Connected to ${this.getParticipantName(remoteUserId)}`, 'success');
+                } else if (pc.connectionState === 'failed') {
+                    this.showNotification(`Connection failed with ${this.getParticipantName(remoteUserId)}`, 'error');
+                }
+            };
             
-            this.sendWebSocketMessage({
-                type: 'webrtc_offer',
-                offer: offer,
-                target_user: userId
-            });
+            // Process pending ICE candidates
+            const pendingCandidates = this.pendingICECandidates.get(remoteUserId) || [];
+            for (const candidate of pendingCandidates) {
+                await pc.addIceCandidate(candidate);
+            }
+            this.pendingICECandidates.delete(remoteUserId);
             
-        } catch (error) {
-            console.error('Error creating peer connection:', error);
-        }
-    }
-    
-    async handleWebRTCOffer(data) {
-        try {
-            const pc = new RTCPeerConnection(this.pcConfig);
-            this.peerConnections.set(data.from_user, pc);
-            
-            // Add local stream tracks
-            if (this.localStream) {
-                this.localStream.getTracks().forEach(track => {
-                    pc.addTrack(track, this.localStream);
+            // Create offer if this is the initiator
+            if (shouldCreateOffer) {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                
+                console.log(`📤 Sending offer to ${remoteUserId}`);
+                this.sendMessage({
+                    type: 'webrtc_offer',
+                    offer: offer,
+                    target_user: remoteUserId
                 });
             }
             
-            // Handle remote stream
-            pc.ontrack = (event) => {
-                console.log('Received remote stream from:', data.from_user);
-                const [remoteStream] = event.streams;
-                this.remoteStreams.set(data.from_user, remoteStream);
-                this.displayRemoteVideo(data.from_user, remoteStream);
-            };
-            
-            // Handle ICE candidates
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    this.sendWebSocketMessage({
-                        type: 'webrtc_ice_candidate',
-                        candidate: event.candidate,
-                        target_user: data.from_user
-                    });
-                }
-            };
-            
-            // Set remote description and create answer
-            await pc.setRemoteDescription(data.offer);
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            
-            this.sendWebSocketMessage({
-                type: 'webrtc_answer',
-                answer: answer,
-                target_user: data.from_user
-            });
-            
         } catch (error) {
-            console.error('Error handling WebRTC offer:', error);
+            console.error(`❌ Error creating peer connection with ${remoteUserId}:`, error);
         }
     }
     
-    async handleWebRTCAnswer(data) {
+    async handleOffer(data) {
         try {
+            console.log(`📥 Received offer from ${data.from_user}`);
+            
+            let pc = this.peerConnections.get(data.from_user);
+            if (!pc) {
+                await this.createPeerConnection(data.from_user, false);
+                pc = this.peerConnections.get(data.from_user);
+            }
+            
+            if (pc) {
+                await pc.setRemoteDescription(data.offer);
+                
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                
+                console.log(`📤 Sending answer to ${data.from_user}`);
+                this.sendMessage({
+                    type: 'webrtc_answer',
+                    answer: answer,
+                    target_user: data.from_user
+                });
+            }
+        } catch (error) {
+            console.error(`❌ Error handling offer from ${data.from_user}:`, error);
+        }
+    }
+    
+    async handleAnswer(data) {
+        try {
+            console.log(`📥 Received answer from ${data.from_user}`);
+            
             const pc = this.peerConnections.get(data.from_user);
             if (pc) {
                 await pc.setRemoteDescription(data.answer);
             }
         } catch (error) {
-            console.error('Error handling WebRTC answer:', error);
+            console.error(`❌ Error handling answer from ${data.from_user}:`, error);
         }
     }
     
     async handleICECandidate(data) {
         try {
+            console.log(`🧊 Received ICE candidate from ${data.from_user}`);
+            
             const pc = this.peerConnections.get(data.from_user);
-            if (pc) {
+            if (pc && pc.remoteDescription) {
                 await pc.addIceCandidate(data.candidate);
+            } else {
+                // Store for later
+                if (!this.pendingICECandidates.has(data.from_user)) {
+                    this.pendingICECandidates.set(data.from_user, []);
+                }
+                this.pendingICECandidates.get(data.from_user).push(data.candidate);
+                console.log(`🧊 Stored ICE candidate from ${data.from_user} for later`);
             }
         } catch (error) {
-            console.error('Error handling ICE candidate:', error);
+            console.error(`❌ Error handling ICE candidate from ${data.from_user}:`, error);
         }
     }
     
     displayRemoteVideo(userId, stream) {
+        console.log(`📺 Displaying remote video for ${userId}`);
+        
         // Remove existing video if any
-        const existingVideo = document.getElementById(`remote-video-${userId}`);
-        if (existingVideo) {
-            existingVideo.remove();
+        const existingContainer = document.getElementById(`remote-video-container-${userId}`);
+        if (existingContainer) {
+            existingContainer.remove();
         }
         
-        // Create new video element
-        const videoContainer = document.createElement('div');
-        videoContainer.className = 'video-item remote-video';
-        videoContainer.id = `remote-video-container-${userId}`;
+        // Create video container
+        const container = document.createElement('div');
+        container.className = 'video-item remote-video';
+        container.id = `remote-video-container-${userId}`;
         
         const video = document.createElement('video');
         video.id = `remote-video-${userId}`;
@@ -541,24 +589,21 @@ class MeetingRoom {
         
         const overlay = document.createElement('div');
         overlay.className = 'video-overlay';
-        
-        const participant = this.participants.get(userId);
-        const username = participant ? participant.username : 'Participant';
-        
         overlay.innerHTML = `
-            <span class="participant-name">${username}</span>
+            <span class="participant-name">${this.getParticipantName(userId)}</span>
             <div class="video-controls">
-                <span class="audio-indicator" id="remote-audio-${userId}">
+                <span class="audio-indicator">
                     <i class="fas fa-microphone"></i>
                 </span>
             </div>
         `;
         
-        videoContainer.appendChild(video);
-        videoContainer.appendChild(overlay);
-        this.remoteVideos.appendChild(videoContainer);
+        container.appendChild(video);
+        container.appendChild(overlay);
+        this.remoteVideos.appendChild(container);
         
-        this.adjustVideoGrid();
+        this.updateVideoGrid();
+        this.updateParticipantCount();
     }
     
     addParticipant(data) {
@@ -578,13 +623,15 @@ class MeetingRoom {
                 <div class="participant-status">Participant</div>
             </div>
             <div class="participant-controls">
-                <i class="fas fa-microphone text-success" id="participant-audio-${data.user_id}"></i>
+                <i class="fas fa-microphone text-success"></i>
             </div>
         `;
         
         if (this.participantsList) {
             this.participantsList.appendChild(participantElement);
         }
+        
+        this.updateParticipantCount();
     }
     
     removeParticipant(userId) {
@@ -601,21 +648,24 @@ class MeetingRoom {
             videoContainer.remove();
         }
         
-        this.adjustVideoGrid();
-    }
-    
-    closePeerConnection(userId) {
+        // Close peer connection
         const pc = this.peerConnections.get(userId);
         if (pc) {
             pc.close();
             this.peerConnections.delete(userId);
         }
         
-        this.remoteStreams.delete(userId);
+        this.updateVideoGrid();
+        this.updateParticipantCount();
     }
     
-    adjustVideoGrid() {
-        const totalVideos = 1 + this.participants.size; // 1 for local + remote videos
+    getParticipantName(userId) {
+        const participant = this.participants.get(userId);
+        return participant ? participant.username : 'Unknown User';
+    }
+    
+    updateVideoGrid() {
+        const totalVideos = 1 + this.participants.size;
         
         if (totalVideos === 1) {
             this.videoGrid.className = 'video-grid single';
@@ -627,7 +677,7 @@ class MeetingRoom {
     }
     
     updateParticipantCount() {
-        const count = this.participants.size + 1; // +1 for self
+        const count = this.participants.size + 1;
         if (this.participantCount) {
             this.participantCount.textContent = `${count} participant${count !== 1 ? 's' : ''}`;
         }
@@ -651,8 +701,7 @@ class MeetingRoom {
                     this.showNotification('Microphone unmuted', 'info');
                 }
                 
-                // Notify others
-                this.sendWebSocketMessage({
+                this.sendMessage({
                     type: 'audio_toggle',
                     muted: this.isAudioMuted
                 });
@@ -671,84 +720,17 @@ class MeetingRoom {
                 if (this.isVideoOff) {
                     icon.className = 'fas fa-video-slash';
                     this.toggleVideoBtn.classList.add('video-off');
-                    this.showNotification('Camera turned off', 'info');
+                    this.showNotification('Camera off', 'info');
                 } else {
                     icon.className = 'fas fa-video';
                     this.toggleVideoBtn.classList.remove('video-off');
-                    this.showNotification('Camera turned on', 'info');
+                    this.showNotification('Camera on', 'info');
                 }
                 
-                // Notify others
-                this.sendWebSocketMessage({
+                this.sendMessage({
                     type: 'video_toggle',
                     video_off: this.isVideoOff
                 });
-            }
-        }
-    }
-    
-    async toggleScreenShare() {
-        if (!this.isScreenSharing) {
-            try {
-                const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true,
-                    audio: true
-                });
-                
-                this.isScreenSharing = true;
-                this.toggleScreenShareBtn.classList.add('sharing');
-                this.toggleScreenShareBtn.querySelector('i').className = 'fas fa-stop';
-                this.showNotification('Screen sharing started', 'success');
-                
-                // Replace video track in all peer connections
-                const videoTrack = screenStream.getVideoTracks()[0];
-                this.peerConnections.forEach(async (pc) => {
-                    const sender = pc.getSenders().find(s => 
-                        s.track && s.track.kind === 'video'
-                    );
-                    if (sender) {
-                        await sender.replaceTrack(videoTrack);
-                    }
-                });
-                
-                // Update local video
-                if (this.localVideo) {
-                    this.localVideo.srcObject = screenStream;
-                }
-                
-                videoTrack.onended = () => {
-                    this.stopScreenShare();
-                };
-                
-            } catch (error) {
-                console.error('Error sharing screen:', error);
-                this.showNotification('Screen share cancelled', 'warning');
-            }
-        } else {
-            this.stopScreenShare();
-        }
-    }
-    
-    async stopScreenShare() {
-        this.isScreenSharing = false;
-        this.toggleScreenShareBtn.classList.remove('sharing');
-        this.toggleScreenShareBtn.querySelector('i').className = 'fas fa-desktop';
-        this.showNotification('Screen sharing stopped', 'info');
-        
-        // Restore camera stream
-        if (this.localStream) {
-            const videoTrack = this.localStream.getVideoTracks()[0];
-            this.peerConnections.forEach(async (pc) => {
-                const sender = pc.getSenders().find(s => 
-                    s.track && s.track.kind === 'video'
-                );
-                if (sender && videoTrack) {
-                    await sender.replaceTrack(videoTrack);
-                }
-            });
-            
-            if (this.localVideo) {
-                this.localVideo.srcObject = this.localStream;
             }
         }
     }
@@ -759,11 +741,6 @@ class MeetingRoom {
         
         if (!isVisible && this.chatInput) {
             this.chatInput.focus();
-            const badge = document.getElementById('chat-badge');
-            if (badge) {
-                badge.style.display = 'none';
-                badge.textContent = '0';
-            }
         }
         
         if (!isVisible && this.participantsPanel.style.display === 'block') {
@@ -783,7 +760,7 @@ class MeetingRoom {
     sendChatMessage() {
         const message = this.chatInput.value.trim();
         if (message) {
-            this.sendWebSocketMessage({
+            this.sendMessage({
                 type: 'chat_message',
                 message: message
             });
@@ -807,7 +784,6 @@ class MeetingRoom {
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
         }
         
-        // Show notification if chat is closed
         if (this.chatPanel.style.display === 'none') {
             const badge = document.getElementById('chat-badge');
             if (badge) {
@@ -818,33 +794,22 @@ class MeetingRoom {
         }
     }
     
-    handleRemoteAudioToggle(data) {
-        const audioIcon = document.getElementById(`remote-audio-${data.user_id}`);
-        const participantAudio = document.getElementById(`participant-audio-${data.user_id}`);
-        
-        if (audioIcon) {
-            audioIcon.className = data.muted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
-        }
-        
-        if (participantAudio) {
-            participantAudio.className = data.muted ? 'fas fa-microphone-slash text-danger' : 'fas fa-microphone text-success';
-        }
+    handleMediaToggle(data) {
+        // Update UI for remote user media toggles
+        console.log('Media toggle:', data);
     }
     
-    handleRemoteVideoToggle(data) {
-        const videoElement = document.getElementById(`remote-video-${data.user_id}`);
-        if (videoElement) {
-            videoElement.style.opacity = data.video_off ? '0.3' : '1';
-        }
-    }
-    
-    sendWebSocketMessage(data) {
+    sendMessage(data) {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(JSON.stringify(data));
+        } else {
+            console.warn('⚠️ WebSocket not ready, message not sent:', data);
         }
     }
     
     showNotification(message, type) {
+        console.log(`📢 ${type.toUpperCase()}: ${message}`);
+        
         const toast = document.createElement('div');
         toast.className = `toast show position-fixed top-0 end-0 m-3`;
         toast.style.zIndex = '9999';
@@ -862,17 +827,19 @@ class MeetingRoom {
             if (toast.parentElement) {
                 toast.remove();
             }
-        }, 3000);
+        }, 4000);
     }
     
     leaveMeeting() {
-        if (confirm('Are you sure you want to leave the meeting?')) {
+        if (confirm('Leave meeting?')) {
             this.cleanup();
             window.location.href = '/meetings/' + this.meetingId + '/';
         }
     }
     
     cleanup() {
+        console.log('🧹 Cleaning up...');
+        
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => track.stop());
         }
@@ -899,9 +866,10 @@ class MeetingRoom {
     }
 }
 
-// Initialize meeting room when page loads
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('.meeting-main')) {
+        console.log('🚀 Initializing meeting room...');
         window.meetingRoom = new MeetingRoom();
     }
 });
