@@ -1,8 +1,11 @@
+"""
+WebSocket consumers for meeting functionality
+File Path: core/consumers.py
+"""
+
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from django.contrib.auth.models import User
-from .models import Meeting, MeetingParticipant
 import uuid
 from datetime import datetime
 
@@ -316,10 +319,14 @@ class MeetingConsumer(AsyncWebsocketConsumer):
             'timestamp': event['timestamp']
         }))
 
-    # Database operations
+    # Database operations - import models here, not at module level
     @database_sync_to_async
     def check_meeting_permission(self):
         try:
+            # Import Django models INSIDE the function to avoid AppRegistryNotReady
+            from django.contrib.auth.models import User
+            from .models import Meeting, MeetingParticipant
+            
             meeting = Meeting.objects.get(id=self.meeting_id)
             if meeting.organizer == self.user:
                 return True
@@ -328,5 +335,6 @@ class MeetingConsumer(AsyncWebsocketConsumer):
             if hasattr(self.user, 'userprofile') and self.user.userprofile.user_type == 'admin':
                 return True
             return False
-        except Meeting.DoesNotExist:
+        except Exception:
+            # Import error or Meeting doesn't exist
             return False
