@@ -195,7 +195,7 @@ if 'RENDER' in os.environ:
     SECRET_KEY = os.environ.get('SECRET_KEY')
     ALLOWED_HOSTS = ['edusync-mbn4.onrender.com', 'localhost', '127.0.0.1']
     
-    # Database - keep using SQLite for simplicity
+    # Databases - keep using SQLite for simplicity
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
